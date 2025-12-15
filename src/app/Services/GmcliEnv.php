@@ -22,6 +22,13 @@ class GmcliEnv
         'GMAIL_ADDRESS_ALIASES',
     ];
 
+    /** Keys that belong in user .env (personal, not shared) */
+    private const USER_KEYS = [
+        'GMAIL_ADDRESS',
+        'GMAIL_REFRESH_TOKEN',
+        'GMAIL_ADDRESS_ALIASES',
+    ];
+
     private GmcliPaths $paths;
     private array $values = [];
     private bool $loaded = false;
@@ -241,9 +248,16 @@ class GmcliEnv
             return;
         }
 
-        $path = $this->paths->envFile();
-        if (file_exists($path)) {
-            $this->values = $this->parse(file_get_contents($path));
+        // Load skill-level .env first (base layer with shared credentials)
+        $skillPath = $this->paths->skillEnvFile();
+        if ($skillPath) {
+            $this->values = $this->parse(file_get_contents($skillPath));
+        }
+
+        // Load user .env second (overrides skill values)
+        $userPath = $this->paths->envFile();
+        if (file_exists($userPath)) {
+            $this->values = array_merge($this->values, $this->parse(file_get_contents($userPath)));
         }
 
         $this->loaded = true;
@@ -287,22 +301,30 @@ class GmcliEnv
 
     /**
      * Serializes values to dotenv format.
+     *
+     * If skill .env exists, only writes USER_KEYS to user .env.
+     * Otherwise writes all keys for backward compatibility.
      */
     private function serialize(): string
     {
         $lines = [];
+        $hasSkillEnv = $this->paths->skillEnvFile() !== null;
 
-        // Write known keys first in order
-        foreach (self::KNOWN_KEYS as $key) {
+        // Determine which keys to save
+        $keysToSave = $hasSkillEnv ? self::USER_KEYS : self::KNOWN_KEYS;
+
+        foreach ($keysToSave as $key) {
             if (isset($this->values[$key])) {
                 $lines[] = $this->formatLine($key, $this->values[$key]);
             }
         }
 
-        // Write any unknown keys after
-        foreach ($this->values as $key => $value) {
-            if (! in_array($key, self::KNOWN_KEYS, true)) {
-                $lines[] = $this->formatLine($key, $value);
+        // In single-file mode, also include unknown keys
+        if (! $hasSkillEnv) {
+            foreach ($this->values as $key => $value) {
+                if (! in_array($key, self::KNOWN_KEYS, true)) {
+                    $lines[] = $this->formatLine($key, $value);
+                }
             }
         }
 

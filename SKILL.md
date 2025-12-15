@@ -28,8 +28,14 @@ Email is optional when an account is configured. Use `gmcli <email> <cmd>` to ov
 
 ## Setup
 
+Personal use:
 ```bash
 gmcli accounts credentials ~/path/to/client_secret.json
+gmcli accounts add you@gmail.com
+```
+
+Team use (credentials in `.env` next to binary):
+```bash
 gmcli accounts add you@gmail.com
 ```
 
@@ -60,5 +66,6 @@ gmcli labels abc123 --add TRASH --remove INBOX
 
 | Path | Purpose |
 |------|---------|
-| `~/.gmcli/.env` | Credentials and tokens (0600 perms) |
+| `.env` (next to binary) | Shared OAuth credentials (optional) |
+| `~/.gmcli/.env` | Personal tokens and email (0600 perms) |
 | `~/.gmcli/attachments/` | Downloaded attachments |

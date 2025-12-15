@@ -35,6 +35,51 @@ class GmcliPaths
     }
 
     /**
+     * Returns path to skill-level .env if it exists.
+     *
+     * Looks for .env next to the running binary/script.
+     * This allows shared credentials to be distributed with the binary.
+     */
+    public function skillEnvFile(): ?string
+    {
+        $binaryDir = $this->getBinaryDirectory();
+        if (! $binaryDir) {
+            return null;
+        }
+
+        $envPath = $binaryDir . '/.env';
+
+        return file_exists($envPath) ? $envPath : null;
+    }
+
+    /**
+     * Determines the directory containing the running binary.
+     *
+     * Handles both compiled PHAR (micro.sfx) and regular PHP execution.
+     */
+    private function getBinaryDirectory(): ?string
+    {
+        // For compiled PHAR, Phar::running(false) returns the binary path
+        if (class_exists(\Phar::class)) {
+            $pharPath = \Phar::running(false);
+            if ($pharPath) {
+                return dirname($pharPath);
+            }
+        }
+
+        // Fallback for regular PHP execution
+        $scriptPath = $_SERVER['SCRIPT_FILENAME'] ?? ($_SERVER['argv'][0] ?? null);
+        if ($scriptPath) {
+            $realPath = realpath($scriptPath);
+            if ($realPath) {
+                return dirname($realPath);
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Ensures base directory exists with secure permissions.
      *
      * @throws RuntimeException if directory cannot be created
