@@ -1,0 +1,14 @@
+/vendor
+/.idea
+/.vscode
+/.vagrant
+.phpunit.result.cache
+
+# static-php-cli build artifacts
+/source
+/downloads
+/buildroot
+/builds
+/pkgroot
+/log
+/spc
