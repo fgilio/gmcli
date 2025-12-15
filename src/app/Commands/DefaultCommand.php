@@ -33,6 +33,15 @@ class DefaultCommand extends Command
             return $this->routeAccounts(array_slice($args, 1));
         }
 
+        // Route to build command
+        if ($first === 'build') {
+            $parsed = $this->parseArgs(array_slice($args, 1));
+
+            return $this->call('build', [
+                '--no-install' => $parsed['--no-install'] ?? false,
+            ]);
+        }
+
         // Route to email-prefixed commands
         if ($this->looksLikeEmail($first)) {
             return $this->routeEmailCommand($first, array_slice($args, 1));
