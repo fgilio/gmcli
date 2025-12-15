@@ -2,6 +2,8 @@
 
 namespace App\Commands;
 
+use App\Services\GmcliEnv;
+use App\Services\GmcliPaths;
 use LaravelZero\Framework\Commands\Command;
 
 /**
@@ -17,6 +19,9 @@ class DefaultCommand extends Command
     protected $description = 'Gmail CLI';
 
     protected $hidden = true;
+
+    /** Gmail commands that can use default email */
+    private array $gmailCommands = ['search', 'thread', 'labels', 'drafts', 'send', 'url'];
 
     public function handle(): int
     {
@@ -42,9 +47,25 @@ class DefaultCommand extends Command
             ]);
         }
 
-        // Route to email-prefixed commands
+        // Route Gmail commands - determine email
         if ($this->looksLikeEmail($first)) {
+            // Explicit email provided
             return $this->routeEmailCommand($first, array_slice($args, 1));
+        }
+
+        // Check if it's a Gmail command using default email
+        if (in_array($first, $this->gmailCommands)) {
+            $email = $this->getDefaultEmail();
+            if (! $email) {
+                $this->error('No default email configured.');
+                $this->line('');
+                $this->line('Either specify email: gmcli <email> ' . $first . ' ...');
+                $this->line('Or add an account:    gmcli accounts add <email>');
+
+                return self::FAILURE;
+            }
+
+            return $this->routeEmailCommand($email, $args);
         }
 
         $this->error("Unknown command: {$first}");
@@ -52,6 +73,13 @@ class DefaultCommand extends Command
         $this->line('Run `gmcli --help` for usage information.');
 
         return self::FAILURE;
+    }
+
+    private function getDefaultEmail(): ?string
+    {
+        $env = new GmcliEnv(new GmcliPaths);
+
+        return $env->get('GMAIL_ADDRESS');
     }
 
     private function routeAccounts(array $args): int
@@ -351,7 +379,10 @@ gmcli - Gmail CLI
 USAGE
 
   gmcli accounts <action>                    Account management
-  gmcli <email> <command> [options]          Gmail operations
+  gmcli [email] <command> [options]          Gmail operations
+
+  Email is optional if you have an account configured.
+  When omitted, uses the email from `gmcli accounts add`.
 
 ACCOUNT COMMANDS
 

@@ -21,13 +21,15 @@ gmcli accounts add you@gmail.com
 ## Usage
 
 ```bash
-gmcli you@gmail.com search "in:inbox is:unread"
-gmcli you@gmail.com thread <id>
-gmcli you@gmail.com thread <id> --download
-gmcli you@gmail.com labels list
-gmcli you@gmail.com labels <id> --add STARRED --remove UNREAD
-gmcli you@gmail.com send --to "to@example.com" --subject "Hi" --body "Hello"
+gmcli search "in:inbox is:unread"
+gmcli thread <id>
+gmcli thread <id> --download
+gmcli labels list
+gmcli labels <id> --add STARRED --remove UNREAD
+gmcli send --to "to@example.com" --subject "Hi" --body "Hello"
 ```
+
+Email is optional once configured. Use `gmcli <email> <cmd>` to override.
 
 ## Data
 
