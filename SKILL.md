@@ -7,8 +7,6 @@ description: >
 
 # gmcli - Gmail CLI
 
-Gmail command-line interface matching [gmcli v0.1.0](https://github.com/badlogic/gmcli) syntax.
-
 ## Quick Reference
 
 | Command | Purpose |
@@ -28,17 +26,8 @@ Gmail command-line interface matching [gmcli v0.1.0](https://github.com/badlogic
 
 ## Setup
 
-### 1. Get OAuth Credentials
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create project and enable Gmail API
-3. Create OAuth 2.0 credentials (Desktop app)
-4. Download JSON credentials file
-
-### 2. Configure gmcli
-
 ```bash
-gmcli accounts credentials ~/Downloads/client_secret.json
+gmcli accounts credentials ~/path/to/client_secret.json
 gmcli accounts add you@gmail.com
 ```
 
@@ -48,10 +37,7 @@ gmcli accounts add you@gmail.com
 # Search unread emails
 gmcli you@gmail.com search "in:inbox is:unread"
 
-# View specific thread
-gmcli you@gmail.com thread 19aea1f2f3532db5
-
-# Download attachments
+# View thread with attachments
 gmcli you@gmail.com thread 19aea1f2f3532db5 --download
 
 # Send email
@@ -63,10 +49,8 @@ gmcli you@gmail.com send --to "recipient@example.com" \
     --subject "Re: Hello" --body "Reply text" \
     --reply-to 19aea1f2f3532db5
 
-# Mark as read
+# Label operations
 gmcli you@gmail.com labels abc123 --remove UNREAD
-
-# Move to trash
 gmcli you@gmail.com labels abc123 --add TRASH --remove INBOX
 ```
 
@@ -76,25 +60,3 @@ gmcli you@gmail.com labels abc123 --add TRASH --remove INBOX
 |------|---------|
 | `~/.gmcli/.env` | Credentials and tokens (0600 perms) |
 | `~/.gmcli/attachments/` | Downloaded attachments |
-
-## Building
-
-```bash
-cd ~/.claude/skills/gmcli
-
-# One-time setup
-phpcli-spc-setup --doctor
-phpcli-spc-build
-
-# Build binary
-phpcli-build
-
-# Binary at: builds/gmcli
-```
-
-## OAuth Scope
-
-Uses `https://www.googleapis.com/auth/gmail.modify` scope:
-- Read, compose, send, and modify email
-- Manage labels
-- NO permanent delete (only trash)

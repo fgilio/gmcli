@@ -1,41 +1,133 @@
-<p align="center">
-    <img title="Laravel Zero" height="100" src="https://raw.githubusercontent.com/laravel-zero/docs/master/images/logo/laravel-zero-readme.png" alt="Laravel Zero Logo" />
-</p>
+# gmcli
 
-<p align="center">
-  <a href="https://github.com/laravel-zero/framework/actions"><img src="https://github.com/laravel-zero/laravel-zero/actions/workflows/tests.yml/badge.svg" alt="Build Status" /></a>
-  <a href="https://packagist.org/packages/laravel-zero/framework"><img src="https://img.shields.io/packagist/dt/laravel-zero/framework.svg" alt="Total Downloads" /></a>
-  <a href="https://packagist.org/packages/laravel-zero/framework"><img src="https://img.shields.io/packagist/v/laravel-zero/framework.svg?label=stable" alt="Latest Stable Version" /></a>
-  <a href="https://packagist.org/packages/laravel-zero/framework"><img src="https://img.shields.io/packagist/l/laravel-zero/framework.svg" alt="License" /></a>
-</p>
+Gmail command-line interface matching [gmcli v0.1.0](https://github.com/badlogic/gmcli) syntax. Built with Laravel Zero, packaged as a self-contained macOS binary.
 
-Laravel Zero was created by [Nuno Maduro](https://github.com/nunomaduro) and [Owen Voke](https://github.com/owenvoke), and is a micro-framework that provides an elegant starting point for your console application. It is an **unofficial** and customized version of Laravel optimized for building command-line applications.
+## Features
 
-- Built on top of the [Laravel](https://laravel.com) components.
-- Optional installation of Laravel [Eloquent](https://laravel-zero.com/docs/database/), Laravel [Logging](https://laravel-zero.com/docs/logging/) and many others.
-- Supports interactive [menus](https://laravel-zero.com/docs/build-interactive-menus/) and [desktop notifications](https://laravel-zero.com/docs/send-desktop-notifications/) on Linux, Windows & MacOS.
-- Ships with a [Scheduler](https://laravel-zero.com/docs/task-scheduling/) and  a [Standalone Compiler](https://laravel-zero.com/docs/build-a-standalone-application/).
-- Integration with [Collision](https://github.com/nunomaduro/collision) - Beautiful error reporting
-- Follow the creator Nuno Maduro:
-    - YouTube: **[youtube.com/@nunomaduro](https://www.youtube.com/@nunomaduro)** — Videos every weekday
-    - Twitch: **[twitch.tv/enunomaduro](https://www.twitch.tv/enunomaduro)** — Streams (almost) every weekday
-    - Twitter / X: **[x.com/enunomaduro](https://x.com/enunomaduro)**
-    - LinkedIn: **[linkedin.com/in/nunomaduro](https://www.linkedin.com/in/nunomaduro)**
-    - Instagram: **[instagram.com/enunomaduro](https://www.instagram.com/enunomaduro)**
-    - Tiktok: **[tiktok.com/@enunomaduro](https://www.tiktok.com/@enunomaduro)**
+- OAuth 2.0 authentication (auto browser flow + manual paste fallback)
+- Search threads using Gmail query syntax
+- View threads with full message content
+- Download attachments
+- Label management (list, add, remove)
+- Drafts CRUD (list, get, create, delete, send)
+- Send emails with attachments and reply-to threading
+- Generate Gmail web URLs
 
-------
+## Requirements
 
-## Documentation
+- macOS (binary built with static-php-cli micro.sfx)
+- Google Cloud project with Gmail API enabled
 
-For full documentation, visit [laravel-zero.com](https://laravel-zero.com/).
+## Setup
 
-## Support the development
-**Do you like this project? Support it by donating**
+### 1. Create OAuth Credentials
 
-- PayPal: [Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=66BYDWAT92N6L)
-- Patreon: [Donate](https://www.patreon.com/nunomaduro)
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project (or select existing)
+3. Enable the Gmail API
+4. Go to **Credentials** → **Create Credentials** → **OAuth client ID**
+5. Select **Desktop app** as application type
+6. Download the JSON credentials file
+
+### 2. Configure gmcli
+
+```bash
+gmcli accounts credentials ~/Downloads/client_secret.json
+gmcli accounts add you@gmail.com
+```
+
+The `add` command opens your browser for OAuth consent. After authorization, tokens are stored securely.
+
+## Usage
+
+```bash
+# Search unread emails
+gmcli you@gmail.com search "in:inbox is:unread"
+
+# View specific thread
+gmcli you@gmail.com thread 19aea1f2f3532db5
+
+# Download attachments
+gmcli you@gmail.com thread 19aea1f2f3532db5 --download
+
+# List labels
+gmcli you@gmail.com labels list
+
+# Mark as read
+gmcli you@gmail.com labels abc123 --remove UNREAD
+
+# Move to trash
+gmcli you@gmail.com labels abc123 --add TRASH --remove INBOX
+
+# List drafts
+gmcli you@gmail.com drafts list
+
+# Create draft
+gmcli you@gmail.com drafts create --to "recipient@example.com" \
+    --subject "Hello" --body "Message body"
+
+# Send email
+gmcli you@gmail.com send --to "recipient@example.com" \
+    --subject "Hello" --body "Message body"
+
+# Reply to thread
+gmcli you@gmail.com send --to "recipient@example.com" \
+    --subject "Re: Hello" --body "Reply text" \
+    --reply-to 19aea1f2f3532db5
+
+# Get Gmail web URLs
+gmcli you@gmail.com url abc123 def456
+```
+
+## Data Storage
+
+| Path | Purpose |
+|------|---------|
+| `~/.gmcli/.env` | OAuth credentials and tokens (0600 permissions) |
+| `~/.gmcli/attachments/` | Downloaded attachments |
+
+## Building
+
+Requires the `php-cli` skill for static-php-cli tooling.
+
+```bash
+cd ~/.claude/skills/gmcli
+
+# One-time setup: build PHP + micro.sfx
+phpcli-spc-setup --doctor
+phpcli-spc-build
+
+# Build gmcli binary
+phpcli-build
+
+# Binary output: builds/gmcli
+```
+
+The build process:
+1. Creates `builds/gmcli.phar` using Box
+2. Combines with `micro.sfx` to produce standalone binary
+3. Final binary is ~50MB, requires no external PHP installation
+
+## OAuth Scope
+
+Uses `https://www.googleapis.com/auth/gmail.modify`:
+- Read, compose, send, and modify email
+- Manage labels
+- **Cannot** permanently delete messages (only trash)
+
+## Testing
+
+```bash
+./vendor/bin/pest
+```
+
+77 tests, 148 assertions covering:
+- OAuth code extraction and URL building
+- MIME parsing and base64url encoding
+- Label name resolution
+- Message building (headers, attachments, threading)
+- Secret redaction in error output
 
 ## License
 
-Laravel Zero is an open-source software licensed under the MIT license.
+MIT
