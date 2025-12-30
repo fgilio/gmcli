@@ -23,9 +23,17 @@ class DefaultCommand extends Command
     /** Gmail commands that can use default email */
     private array $gmailCommands = ['search', 'thread', 'labels', 'drafts', 'send', 'url'];
 
+    protected function configure(): void
+    {
+        // Without this, --options cause validation errors
+        $this->ignoreValidationErrors();
+    }
+
     public function handle(): int
     {
-        $args = $this->argument('args') ?? [];
+        // Use $_SERVER['argv'] directly - {args?*} doesn't capture options
+        // Skip only the script name (index 0) since entry point routes through default
+        $args = array_slice($_SERVER['argv'], 1);
 
         if (empty($args) || in_array($args[0] ?? '', ['--help', '-h', 'help'])) {
             return $this->showHelp();
