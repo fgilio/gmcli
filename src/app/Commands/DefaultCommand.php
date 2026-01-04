@@ -40,10 +40,14 @@ class DefaultCommand extends Command
         return in_array('--json', $_SERVER['argv'], true);
     }
 
-    protected function jsonError(string $message): int
+    protected function jsonError(string $message, bool $includeCommands = false): int
     {
         if ($this->shouldOutputJson()) {
-            fwrite(STDERR, json_encode(['error' => $message])."\n");
+            $data = ['error' => $message];
+            if ($includeCommands) {
+                $data['valid_commands'] = $this->gmailCommands;
+            }
+            fwrite(STDERR, json_encode($data, JSON_PRETTY_PRINT)."\n");
         } else {
             $this->error($message);
         }
@@ -97,7 +101,7 @@ class DefaultCommand extends Command
             return $this->routeEmailCommand($email, $parsed);
         }
 
-        return $this->jsonError("Unknown command: {$first}");
+        return $this->jsonError("Unknown command: {$first}", true);
     }
 
     private function getDefaultEmail(): ?string
