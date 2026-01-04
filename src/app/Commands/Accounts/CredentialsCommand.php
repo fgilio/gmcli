@@ -2,6 +2,7 @@
 
 namespace App\Commands\Accounts;
 
+use App\Services\Analytics;
 use App\Services\GmcliEnv;
 use App\Services\GmcliPaths;
 use LaravelZero\Framework\Commands\Command;
@@ -19,8 +20,9 @@ class CredentialsCommand extends Command
 
     protected $hidden = true;
 
-    public function handle(GmcliPaths $paths, GmcliEnv $env): int
+    public function handle(GmcliPaths $paths, GmcliEnv $env, Analytics $analytics): int
     {
+        $startTime = microtime(true);
         $file = $this->argument('file');
 
         if (empty($file)) {
@@ -28,11 +30,15 @@ class CredentialsCommand extends Command
             $this->line('');
             $this->line('Usage: gmcli accounts credentials <file.json>');
 
+            $analytics->track('accounts:credentials', self::FAILURE, ['success' => false], $startTime);
+
             return self::FAILURE;
         }
 
         if (! file_exists($file)) {
             $this->error("File not found: {$file}");
+
+            $analytics->track('accounts:credentials', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;
         }
@@ -42,6 +48,8 @@ class CredentialsCommand extends Command
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             $this->error('Invalid JSON file.');
+
+            $analytics->track('accounts:credentials', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;
         }
@@ -53,6 +61,8 @@ class CredentialsCommand extends Command
             $this->error('Invalid credentials file format.');
             $this->line('Expected "installed" or "web" OAuth client credentials from Google Cloud Console.');
 
+            $analytics->track('accounts:credentials', self::FAILURE, ['success' => false], $startTime);
+
             return self::FAILURE;
         }
 
@@ -61,6 +71,8 @@ class CredentialsCommand extends Command
 
         if (! $clientId || ! $clientSecret) {
             $this->error('Missing client_id or client_secret in credentials file.');
+
+            $analytics->track('accounts:credentials', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;
         }
@@ -71,6 +83,8 @@ class CredentialsCommand extends Command
 
         $this->info('Credentials saved.');
         $this->line("Client ID: {$clientId}");
+
+        $analytics->track('accounts:credentials', self::SUCCESS, ['success' => true], $startTime);
 
         return self::SUCCESS;
     }

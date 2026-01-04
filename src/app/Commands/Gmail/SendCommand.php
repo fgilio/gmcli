@@ -2,6 +2,7 @@
 
 namespace App\Commands\Gmail;
 
+use App\Services\Analytics;
 use App\Services\MessageBuilder;
 use App\Services\MimeHelper;
 
@@ -24,8 +25,9 @@ class SendCommand extends BaseGmailCommand
 
     protected $hidden = true;
 
-    public function handle(): int
+    public function handle(Analytics $analytics): int
     {
+        $startTime = microtime(true);
         $email = $this->argument('email');
         $to = $this->option('to');
         $subject = $this->option('subject');
@@ -36,13 +38,22 @@ class SendCommand extends BaseGmailCommand
         $attachments = $this->option('attach') ?: [];
 
         if (empty($to) || empty($subject) || empty($body)) {
+            if ($this->shouldOutputJson()) {
+                $analytics->track('gmail:send', self::FAILURE, ['success' => false], $startTime);
+
+                return $this->jsonError('Missing required options: --to, --subject, --body');
+            }
             $this->error('Missing required options.');
             $this->line('Usage: gmcli <email> send --to <emails> --subject <s> --body <b>');
+
+            $analytics->track('gmail:send', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;
         }
 
         if (! $this->initGmail($email)) {
+            $analytics->track('gmail:send', self::FAILURE, ['success' => false], $startTime);
+
             return self::FAILURE;
         }
 
@@ -85,15 +96,26 @@ class SendCommand extends BaseGmailCommand
             $messageId = $response['id'] ?? '';
             $threadId = $response['threadId'] ?? '';
 
+            if ($this->shouldOutputJson()) {
+                $analytics->track('gmail:send', self::SUCCESS, ['success' => true], $startTime);
+
+                return $this->outputJson([
+                    'messageId' => $messageId,
+                    'threadId' => $threadId,
+                ]);
+            }
+
             $this->info("Message sent successfully.");
             $this->line("Message-ID: {$messageId}");
             $this->line("Thread-ID: {$threadId}");
 
+            $analytics->track('gmail:send', self::SUCCESS, ['success' => true], $startTime);
+
             return self::SUCCESS;
         } catch (\RuntimeException $e) {
-            $this->error($e->getMessage());
+            $analytics->track('gmail:send', self::FAILURE, ['success' => false], $startTime);
 
-            return self::FAILURE;
+            return $this->jsonError($e->getMessage());
         }
     }
 

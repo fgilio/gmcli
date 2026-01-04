@@ -2,6 +2,8 @@
 
 namespace App\Commands\Gmail;
 
+use App\Services\Analytics;
+
 /**
  * Sends a Gmail draft.
  */
@@ -15,19 +17,29 @@ class DraftsSendCommand extends BaseGmailCommand
 
     protected $hidden = true;
 
-    public function handle(): int
+    public function handle(Analytics $analytics): int
     {
+        $startTime = microtime(true);
         $email = $this->argument('email');
         $draftId = $this->option('draft-id');
 
         if (empty($draftId)) {
+            if ($this->shouldOutputJson()) {
+                $analytics->track('gmail:drafts:send', self::FAILURE, ['success' => false], $startTime);
+
+                return $this->jsonError('Missing draft ID.');
+            }
             $this->error('Missing draft ID.');
             $this->line('Usage: gmcli <email> drafts send <draftId>');
+
+            $analytics->track('gmail:drafts:send', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;
         }
 
         if (! $this->initGmail($email)) {
+            $analytics->track('gmail:drafts:send', self::FAILURE, ['success' => false], $startTime);
+
             return self::FAILURE;
         }
 
@@ -41,15 +53,26 @@ class DraftsSendCommand extends BaseGmailCommand
             $messageId = $response['id'] ?? '';
             $threadId = $response['threadId'] ?? '';
 
+            if ($this->shouldOutputJson()) {
+                $analytics->track('gmail:drafts:send', self::SUCCESS, ['success' => true], $startTime);
+
+                return $this->outputJson([
+                    'messageId' => $messageId,
+                    'threadId' => $threadId,
+                ]);
+            }
+
             $this->info("Draft sent successfully.");
             $this->line("Message-ID: {$messageId}");
             $this->line("Thread-ID: {$threadId}");
 
+            $analytics->track('gmail:drafts:send', self::SUCCESS, ['success' => true], $startTime);
+
             return self::SUCCESS;
         } catch (\RuntimeException $e) {
-            $this->error($e->getMessage());
+            $analytics->track('gmail:drafts:send', self::FAILURE, ['success' => false], $startTime);
 
-            return self::FAILURE;
+            return $this->jsonError($e->getMessage());
         }
     }
 }

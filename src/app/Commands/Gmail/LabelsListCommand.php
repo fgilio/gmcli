@@ -2,6 +2,8 @@
 
 namespace App\Commands\Gmail;
 
+use App\Services\Analytics;
+
 /**
  * Lists all Gmail labels.
  */
@@ -13,11 +15,14 @@ class LabelsListCommand extends BaseGmailCommand
 
     protected $hidden = true;
 
-    public function handle(): int
+    public function handle(Analytics $analytics): int
     {
+        $startTime = microtime(true);
         $email = $this->argument('email');
 
         if (! $this->initGmail($email)) {
+            $analytics->track('gmail:labels:list', self::FAILURE, ['count' => 0], $startTime);
+
             return self::FAILURE;
         }
 
@@ -30,26 +35,33 @@ class LabelsListCommand extends BaseGmailCommand
             // Sort by name
             usort($labels, fn($a, $b) => strcasecmp($a['name'], $b['name']));
 
-            foreach ($labels as $label) {
-                $this->formatLabel($label);
+            // JSON output
+            if ($this->shouldOutputJson()) {
+                $jsonLabels = array_map(fn($l) => [
+                    'id' => $l['id'],
+                    'name' => $l['name'],
+                    'type' => $l['type'] ?? 'user',
+                ], $labels);
+
+                $analytics->track('gmail:labels:list', self::SUCCESS, ['count' => count($labels)], $startTime);
+
+                return $this->outputJson($jsonLabels);
             }
+
+            // Text output
+            foreach ($labels as $label) {
+                $type = $label['type'] ?? 'user';
+                $typeTag = $type === 'system' ? ' (system)' : '';
+                $this->line("{$label['id']}\t{$label['name']}{$typeTag}");
+            }
+
+            $analytics->track('gmail:labels:list', self::SUCCESS, ['count' => count($labels)], $startTime);
 
             return self::SUCCESS;
         } catch (\RuntimeException $e) {
-            $this->error($e->getMessage());
+            $analytics->track('gmail:labels:list', self::FAILURE, ['count' => 0], $startTime);
 
-            return self::FAILURE;
+            return $this->jsonError($e->getMessage());
         }
-    }
-
-    private function formatLabel(array $label): void
-    {
-        $id = $label['id'];
-        $name = $label['name'];
-        $type = $label['type'] ?? 'user';
-
-        $typeTag = $type === 'system' ? ' (system)' : '';
-
-        $this->line("{$id}\t{$name}{$typeTag}");
     }
 }

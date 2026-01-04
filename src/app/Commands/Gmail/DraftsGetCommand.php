@@ -2,6 +2,7 @@
 
 namespace App\Commands\Gmail;
 
+use App\Services\Analytics;
 use App\Services\MimeHelper;
 
 /**
@@ -20,20 +21,30 @@ class DraftsGetCommand extends BaseGmailCommand
 
     private MimeHelper $mime;
 
-    public function handle(): int
+    public function handle(Analytics $analytics): int
     {
+        $startTime = microtime(true);
         $email = $this->argument('email');
         $draftId = $this->option('draft-id');
         $download = $this->option('download');
 
         if (empty($draftId)) {
+            if ($this->shouldOutputJson()) {
+                $analytics->track('gmail:drafts:get', self::FAILURE, ['found' => false], $startTime);
+
+                return $this->jsonError('Missing draft ID.');
+            }
             $this->error('Missing draft ID.');
             $this->line('Usage: gmcli <email> drafts get <draftId> [--download]');
+
+            $analytics->track('gmail:drafts:get', self::FAILURE, ['found' => false], $startTime);
 
             return self::FAILURE;
         }
 
         if (! $this->initGmail($email)) {
+            $analytics->track('gmail:drafts:get', self::FAILURE, ['found' => false], $startTime);
+
             return self::FAILURE;
         }
 
@@ -53,7 +64,29 @@ class DraftsGetCommand extends BaseGmailCommand
             $to = $this->mime->getHeader($payload, 'To') ?? '';
             $cc = $this->mime->getHeader($payload, 'Cc');
             $subject = $this->mime->getHeader($payload, 'Subject') ?? '(no subject)';
+            $body = $this->mime->extractTextBody($payload);
+            $attachments = $this->mime->getAttachments($payload);
 
+            // JSON output
+            if ($this->shouldOutputJson()) {
+                $analytics->track('gmail:drafts:get', self::SUCCESS, ['found' => true], $startTime);
+
+                return $this->outputJson([
+                    'draftId' => $draftId,
+                    'messageId' => $message['id'] ?? '',
+                    'to' => $to,
+                    'cc' => $cc,
+                    'subject' => $subject,
+                    'body' => $body,
+                    'attachments' => array_map(fn($a) => [
+                        'filename' => $a['filename'],
+                        'mimeType' => $a['mimeType'],
+                        'size' => $a['size'],
+                    ], $attachments),
+                ]);
+            }
+
+            // Text output
             $this->line("Draft-ID: {$draftId}");
             $this->line("Message-ID: " . ($message['id'] ?? ''));
             $this->line("To: {$to}");
@@ -63,16 +96,12 @@ class DraftsGetCommand extends BaseGmailCommand
             $this->line("Subject: {$subject}");
             $this->newLine();
 
-            // Body
-            $body = $this->mime->extractTextBody($payload);
             if ($body !== '') {
                 $this->line($body);
             } else {
                 $this->line('(no text/plain body)');
             }
 
-            // Attachments
-            $attachments = $this->mime->getAttachments($payload);
             if (! empty($attachments)) {
                 $this->newLine();
                 $this->line("Attachments:");
@@ -87,11 +116,13 @@ class DraftsGetCommand extends BaseGmailCommand
                 }
             }
 
+            $analytics->track('gmail:drafts:get', self::SUCCESS, ['found' => true], $startTime);
+
             return self::SUCCESS;
         } catch (\RuntimeException $e) {
-            $this->error($e->getMessage());
+            $analytics->track('gmail:drafts:get', self::FAILURE, ['found' => false], $startTime);
 
-            return self::FAILURE;
+            return $this->jsonError($e->getMessage());
         }
     }
 

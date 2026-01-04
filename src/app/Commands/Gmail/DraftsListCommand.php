@@ -2,6 +2,8 @@
 
 namespace App\Commands\Gmail;
 
+use App\Services\Analytics;
+
 /**
  * Lists all Gmail drafts.
  */
@@ -13,11 +15,14 @@ class DraftsListCommand extends BaseGmailCommand
 
     protected $hidden = true;
 
-    public function handle(): int
+    public function handle(Analytics $analytics): int
     {
+        $startTime = microtime(true);
         $email = $this->argument('email');
 
         if (! $this->initGmail($email)) {
+            $analytics->track('gmail:drafts:list', self::FAILURE, ['count' => 0], $startTime);
+
             return self::FAILURE;
         }
 
@@ -28,23 +33,40 @@ class DraftsListCommand extends BaseGmailCommand
             $drafts = $response['drafts'] ?? [];
 
             if (empty($drafts)) {
+                if ($this->shouldOutputJson()) {
+                    $analytics->track('gmail:drafts:list', self::SUCCESS, ['count' => 0], $startTime);
+
+                    return $this->outputJson([]);
+                }
                 $this->info('No drafts found.');
+
+                $analytics->track('gmail:drafts:list', self::SUCCESS, ['count' => 0], $startTime);
 
                 return self::SUCCESS;
             }
 
-            foreach ($drafts as $draft) {
-                $draftId = $draft['id'];
-                $messageId = $draft['message']['id'] ?? '';
+            $results = array_map(fn($d) => [
+                'draftId' => $d['id'],
+                'messageId' => $d['message']['id'] ?? '',
+            ], $drafts);
 
-                $this->line("{$draftId}\t{$messageId}");
+            if ($this->shouldOutputJson()) {
+                $analytics->track('gmail:drafts:list', self::SUCCESS, ['count' => count($results)], $startTime);
+
+                return $this->outputJson($results);
             }
+
+            foreach ($results as $result) {
+                $this->line("{$result['draftId']}\t{$result['messageId']}");
+            }
+
+            $analytics->track('gmail:drafts:list', self::SUCCESS, ['count' => count($results)], $startTime);
 
             return self::SUCCESS;
         } catch (\RuntimeException $e) {
-            $this->error($e->getMessage());
+            $analytics->track('gmail:drafts:list', self::FAILURE, ['count' => 0], $startTime);
 
-            return self::FAILURE;
+            return $this->jsonError($e->getMessage());
         }
     }
 }

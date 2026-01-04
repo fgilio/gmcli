@@ -2,6 +2,10 @@
 
 Gmail command-line interface. Self-contained binary, no PHP required.
 
+## Install
+
+See [SETUP.md](SETUP.md) or run `./install`
+
 ## Setup
 
 ### Personal Use
@@ -12,8 +16,8 @@ Gmail command-line interface. Self-contained binary, no PHP required.
 4. Download JSON file
 
 ```bash
-gmcli accounts credentials ~/Downloads/client_secret.json
-gmcli accounts add you@gmail.com
+~/.claude/skills/gmcli/gmcli accounts credentials ~/Downloads/client_secret.json
+~/.claude/skills/gmcli/gmcli accounts add you@gmail.com
 ```
 
 ### Team Distribution
@@ -29,7 +33,7 @@ cp .env.example .env
 Team members only need to:
 
 ```bash
-gmcli accounts add their@company.com
+~/.claude/skills/gmcli/gmcli accounts add their@company.com
 ```
 
 Credentials load from `.env` next to binary; tokens save to `~/.gmcli/.env`.
@@ -37,15 +41,15 @@ Credentials load from `.env` next to binary; tokens save to `~/.gmcli/.env`.
 ## Usage
 
 ```bash
-gmcli search "in:inbox is:unread"
-gmcli thread <id>
-gmcli thread <id> --download
-gmcli labels list
-gmcli labels <id> --add STARRED --remove UNREAD
-gmcli send --to "to@example.com" --subject "Hi" --body "Hello"
+~/.claude/skills/gmcli/gmcli search "in:inbox is:unread"
+~/.claude/skills/gmcli/gmcli thread <id>
+~/.claude/skills/gmcli/gmcli thread <id> --download
+~/.claude/skills/gmcli/gmcli labels list
+~/.claude/skills/gmcli/gmcli labels <id> --add STARRED --remove UNREAD
+~/.claude/skills/gmcli/gmcli send --to "to@example.com" --subject "Hi" --body "Hello"
 ```
 
-Email is optional once configured. Use `gmcli <email> <cmd>` to override.
+Email is optional once configured. Use `~/.claude/skills/gmcli/gmcli <email> <cmd>` to override.
 
 ## Data
 

@@ -62,6 +62,22 @@ gmcli labels abc123 --remove UNREAD
 gmcli labels abc123 --add TRASH --remove INBOX
 ```
 
+## JSON Output
+
+Use `--json` for structured output:
+
+```bash
+# Text output (default)
+gmcli search "is:unread"
+
+# JSON output
+gmcli search "is:unread" --json
+```
+
+JSON structure:
+- Success: `{"data": [...]}`
+- Error: `{"error": "message"}` (to stderr)
+
 ## Data Storage
 
 | Path | Purpose |

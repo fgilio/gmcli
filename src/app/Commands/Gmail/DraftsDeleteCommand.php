@@ -2,6 +2,8 @@
 
 namespace App\Commands\Gmail;
 
+use App\Services\Analytics;
+
 /**
  * Deletes a Gmail draft.
  */
@@ -15,19 +17,29 @@ class DraftsDeleteCommand extends BaseGmailCommand
 
     protected $hidden = true;
 
-    public function handle(): int
+    public function handle(Analytics $analytics): int
     {
+        $startTime = microtime(true);
         $email = $this->argument('email');
         $draftId = $this->option('draft-id');
 
         if (empty($draftId)) {
+            if ($this->shouldOutputJson()) {
+                $analytics->track('gmail:drafts:delete', self::FAILURE, ['success' => false], $startTime);
+
+                return $this->jsonError('Missing draft ID.');
+            }
             $this->error('Missing draft ID.');
             $this->line('Usage: gmcli <email> drafts delete <draftId>');
+
+            $analytics->track('gmail:drafts:delete', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;
         }
 
         if (! $this->initGmail($email)) {
+            $analytics->track('gmail:drafts:delete', self::FAILURE, ['success' => false], $startTime);
+
             return self::FAILURE;
         }
 
@@ -38,13 +50,23 @@ class DraftsDeleteCommand extends BaseGmailCommand
             // Need to add delete support to GmailClient
             $this->deleteDraft($draftId);
 
+            if ($this->shouldOutputJson()) {
+                $analytics->track('gmail:drafts:delete', self::SUCCESS, ['success' => true], $startTime);
+
+                return $this->outputJson([
+                    'draftId' => $draftId,
+                ]);
+            }
+
             $this->info("Draft deleted: {$draftId}");
+
+            $analytics->track('gmail:drafts:delete', self::SUCCESS, ['success' => true], $startTime);
 
             return self::SUCCESS;
         } catch (\RuntimeException $e) {
-            $this->error($e->getMessage());
+            $analytics->track('gmail:drafts:delete', self::FAILURE, ['success' => false], $startTime);
 
-            return self::FAILURE;
+            return $this->jsonError($e->getMessage());
         }
     }
 

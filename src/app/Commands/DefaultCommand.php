@@ -4,6 +4,8 @@ namespace App\Commands;
 
 use App\Services\GmcliEnv;
 use App\Services\GmcliPaths;
+use Fgilio\AgentSkillFoundation\Router\ParsedInput;
+use Fgilio\AgentSkillFoundation\Router\Router;
 use LaravelZero\Framework\Commands\Command;
 
 /**
@@ -23,48 +25,67 @@ class DefaultCommand extends Command
     /** Gmail commands that can use default email */
     private array $gmailCommands = ['search', 'thread', 'labels', 'drafts', 'send', 'url'];
 
+    public function __construct(private Router $router)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
-        // Without this, --options cause validation errors
         $this->ignoreValidationErrors();
+    }
+
+    protected function shouldOutputJson(): bool
+    {
+        return in_array('--json', $_SERVER['argv'], true);
+    }
+
+    protected function jsonError(string $message): int
+    {
+        if ($this->shouldOutputJson()) {
+            fwrite(STDERR, json_encode(['error' => $message])."\n");
+        } else {
+            $this->error($message);
+        }
+
+        return self::FAILURE;
     }
 
     public function handle(): int
     {
-        // Use $_SERVER['argv'] directly - {args?*} doesn't capture options
-        // Skip only the script name (index 0) since entry point routes through default
-        $args = array_slice($_SERVER['argv'], 1);
+        $parsed = $this->router->parse($this);
+        $first = $parsed->subcommand();
 
-        if (empty($args) || in_array($args[0] ?? '', ['--help', '-h', 'help'])) {
+        // Handle help
+        if (empty($first) || in_array($first, ['--help', '-h', 'help'])) {
             return $this->showHelp();
         }
 
-        $first = $args[0];
-
         // Route to accounts commands
         if ($first === 'accounts') {
-            return $this->routeAccounts(array_slice($args, 1));
+            return $this->routeAccounts($parsed->shift(1));
         }
 
         // Route to build command
         if ($first === 'build') {
-            $parsed = $this->parseArgs(array_slice($args, 1));
-
             return $this->call('build', [
-                '--no-install' => $parsed['--no-install'] ?? false,
+                '--no-install' => $parsed->hasFlag('no-install'),
+                '--keep-dev' => $parsed->hasFlag('keep-dev'),
             ]);
         }
 
         // Route Gmail commands - determine email
         if ($this->looksLikeEmail($first)) {
-            // Explicit email provided
-            return $this->routeEmailCommand($first, array_slice($args, 1));
+            return $this->routeEmailCommand($first, $parsed->shift(1));
         }
 
         // Check if it's a Gmail command using default email
         if (in_array($first, $this->gmailCommands)) {
             $email = $this->getDefaultEmail();
             if (! $email) {
+                if ($this->shouldOutputJson()) {
+                    return $this->jsonError('No default email configured.');
+                }
                 $this->error('No default email configured.');
                 $this->line('');
                 $this->line('Either specify email: gmcli <email> ' . $first . ' ...');
@@ -73,14 +94,10 @@ class DefaultCommand extends Command
                 return self::FAILURE;
             }
 
-            return $this->routeEmailCommand($email, $args);
+            return $this->routeEmailCommand($email, $parsed);
         }
 
-        $this->error("Unknown command: {$first}");
-        $this->line('');
-        $this->line('Run `gmcli --help` for usage information.');
-
-        return self::FAILURE;
+        return $this->jsonError("Unknown command: {$first}");
     }
 
     private function getDefaultEmail(): ?string
@@ -90,261 +107,179 @@ class DefaultCommand extends Command
         return $env->get('GMAIL_ADDRESS');
     }
 
-    private function routeAccounts(array $args): int
+    private function routeAccounts(ParsedInput $p): int
     {
-        if (empty($args)) {
-            $this->error('Missing accounts action.');
-            $this->line('');
-            $this->line('Available actions: credentials, list, add, remove');
-
-            return self::FAILURE;
+        $action = $p->subcommand();
+        if (empty($action)) {
+            return $this->jsonError('Missing accounts action.');
         }
 
-        $action = $args[0];
-        $remaining = array_slice($args, 1);
+        $shifted = $p->shift(1);
+        $jsonFlag = $this->shouldOutputJson();
 
         return match ($action) {
-            'credentials' => $this->call('accounts:credentials', ['file' => $remaining[0] ?? null]),
-            'list' => $this->call('accounts:list'),
+            'credentials' => $this->call('accounts:credentials', ['file' => $shifted->arg(0)]),
+            'list' => $this->call('accounts:list', ['--json' => $jsonFlag]),
             'add' => $this->call('accounts:add', [
-                'email' => $remaining[0] ?? null,
-                '--manual' => in_array('--manual', $remaining, true),
+                'email' => $shifted->arg(0),
+                '--manual' => $shifted->hasFlag('manual'),
             ]),
-            'remove' => $this->call('accounts:remove', ['email' => $remaining[0] ?? null]),
+            'remove' => $this->call('accounts:remove', ['email' => $shifted->arg(0)]),
             default => $this->unknownAccountsAction($action),
         };
     }
 
-    private function routeEmailCommand(string $email, array $args): int
+    private function routeEmailCommand(string $email, ParsedInput $p): int
     {
-        if (empty($args)) {
-            $this->error('Missing command.');
-            $this->line('');
-            $this->line('Available commands: search, thread, labels, drafts, send, url');
-
-            return self::FAILURE;
+        $command = $p->subcommand();
+        if (empty($command)) {
+            return $this->jsonError('Missing command.');
         }
 
-        $command = $args[0];
-        $remaining = array_slice($args, 1);
+        $shifted = $p->shift(1);
 
         return match ($command) {
-            'search' => $this->routeSearch($email, $remaining),
-            'thread' => $this->routeThread($email, $remaining),
-            'labels' => $this->routeLabels($email, $remaining),
-            'drafts' => $this->routeDrafts($email, $remaining),
-            'send' => $this->routeSend($email, $remaining),
-            'url' => $this->routeUrl($email, $remaining),
+            'search' => $this->routeSearch($email, $shifted),
+            'thread' => $this->routeThread($email, $shifted),
+            'labels' => $this->routeLabels($email, $shifted),
+            'drafts' => $this->routeDrafts($email, $shifted),
+            'send' => $this->routeSend($email, $shifted),
+            'url' => $this->routeUrl($email, $shifted),
             default => $this->unknownEmailCommand($command),
         };
     }
 
-    private function routeSearch(string $email, array $args): int
+    private function routeSearch(string $email, ParsedInput $p): int
     {
-        $parsed = $this->parseArgs($args);
-        $query = $parsed['args'][0] ?? $parsed['--query'] ?? null;
+        $query = $p->arg(0) ?? $p->scanOption('query');
 
         if (empty($query)) {
-            $this->error('Missing search query.');
-            $this->line('Usage: gmcli <email> search "<query>" [--max N] [--page TOKEN]');
-
-            return self::FAILURE;
+            return $this->jsonError('Missing search query.');
         }
 
         return $this->call('gmail:search', [
             'email' => $email,
             '--query' => $query,
-            '--max' => $parsed['--max'] ?? 20,
-            '--page' => $parsed['--page'] ?? null,
+            '--max' => $p->scanOption('max', null, 20),
+            '--page' => $p->scanOption('page'),
+            '--json' => $this->shouldOutputJson(),
         ]);
     }
 
-    private function routeThread(string $email, array $args): int
+    private function routeThread(string $email, ParsedInput $p): int
     {
-        $parsed = $this->parseArgs($args);
-        $threadId = $parsed['args'][0] ?? null;
+        $threadId = $p->arg(0);
 
         if (empty($threadId)) {
-            $this->error('Missing thread ID.');
-            $this->line('Usage: gmcli <email> thread <threadId> [--download]');
-
-            return self::FAILURE;
+            return $this->jsonError('Missing thread ID.');
         }
 
         return $this->call('gmail:thread', [
             'email' => $email,
             '--thread-id' => $threadId,
-            '--download' => $parsed['--download'] ?? false,
+            '--download' => $p->hasFlag('download'),
+            '--json' => $this->shouldOutputJson(),
         ]);
     }
 
-    private function routeUrl(string $email, array $args): int
+    private function routeUrl(string $email, ParsedInput $p): int
     {
-        $parsed = $this->parseArgs($args);
-        $threadIds = $parsed['args'] ?? [];
+        $threadIds = $p->remainingArgs();
 
         if (empty($threadIds)) {
-            $this->error('Missing thread IDs.');
-            $this->line('Usage: gmcli <email> url <threadIds...>');
-
-            return self::FAILURE;
+            return $this->jsonError('Missing thread IDs.');
         }
 
         return $this->call('gmail:url', [
             'email' => $email,
             '--thread-ids' => $threadIds,
+            '--json' => $this->shouldOutputJson(),
         ]);
     }
 
-    private function routeLabels(string $email, array $args): int
+    private function routeLabels(string $email, ParsedInput $p): int
     {
-        if (empty($args)) {
-            $this->error('Missing labels action or thread IDs.');
-            $this->line('');
-            $this->line('Usage: gmcli <email> labels list');
-            $this->line('       gmcli <email> labels <threadIds...> [--add L] [--remove L]');
-
-            return self::FAILURE;
+        $first = $p->subcommand();
+        if (empty($first)) {
+            return $this->jsonError('Missing labels action or thread IDs.');
         }
 
-        if ($args[0] === 'list') {
-            return $this->call('gmail:labels:list', ['email' => $email]);
+        $jsonFlag = $this->shouldOutputJson();
+
+        if ($first === 'list') {
+            return $this->call('gmail:labels:list', ['email' => $email, '--json' => $jsonFlag]);
         }
 
-        // Parse labels modify args
-        $parsed = $this->parseArgs($args);
-        $threadIds = $parsed['args'] ?? [];
-        $addLabels = $parsed['--add'] ?? null;
-        $removeLabels = $parsed['--remove'] ?? null;
+        // Thread IDs for label modification
+        $threadIds = $p->remainingArgs();
+        $addLabels = $p->scanOption('add');
+        $removeLabels = $p->scanOption('remove');
 
         return $this->call('gmail:labels:modify', [
             'email' => $email,
             '--thread-ids' => $threadIds,
             '--add' => $addLabels ? [$addLabels] : [],
             '--remove' => $removeLabels ? [$removeLabels] : [],
+            '--json' => $jsonFlag,
         ]);
     }
 
-    private function routeDrafts(string $email, array $args): int
+    private function routeDrafts(string $email, ParsedInput $p): int
     {
-        if (empty($args)) {
-            $this->error('Missing drafts action.');
-            $this->line('');
-            $this->line('Available actions: list, get, delete, send, create');
-
-            return self::FAILURE;
+        $action = $p->subcommand();
+        if (empty($action)) {
+            return $this->jsonError('Missing drafts action.');
         }
 
-        $action = $args[0];
-        $remaining = array_slice($args, 1);
-        $parsed = $this->parseArgs($remaining);
+        $shifted = $p->shift(1);
+        $jsonFlag = $this->shouldOutputJson();
 
         return match ($action) {
-            'list' => $this->call('gmail:drafts:list', ['email' => $email]),
+            'list' => $this->call('gmail:drafts:list', ['email' => $email, '--json' => $jsonFlag]),
             'get' => $this->call('gmail:drafts:get', [
                 'email' => $email,
-                '--draft-id' => $parsed['args'][0] ?? null,
-                '--download' => $parsed['--download'] ?? false,
+                '--draft-id' => $shifted->arg(0),
+                '--download' => $shifted->hasFlag('download'),
+                '--json' => $jsonFlag,
             ]),
             'delete' => $this->call('gmail:drafts:delete', [
                 'email' => $email,
-                '--draft-id' => $parsed['args'][0] ?? null,
+                '--draft-id' => $shifted->arg(0),
+                '--json' => $jsonFlag,
             ]),
             'send' => $this->call('gmail:drafts:send', [
                 'email' => $email,
-                '--draft-id' => $parsed['args'][0] ?? null,
+                '--draft-id' => $shifted->arg(0),
+                '--json' => $jsonFlag,
             ]),
             'create' => $this->call('gmail:drafts:create', [
                 'email' => $email,
-                '--to' => $parsed['--to'] ?? null,
-                '--subject' => $parsed['--subject'] ?? null,
-                '--body' => $parsed['--body'] ?? null,
-                '--cc' => $parsed['--cc'] ?? null,
-                '--bcc' => $parsed['--bcc'] ?? null,
-                '--reply-to' => $parsed['--reply-to'] ?? null,
-                '--attach' => $this->collectAttachments($remaining),
+                '--to' => $shifted->scanOption('to'),
+                '--subject' => $shifted->scanOption('subject'),
+                '--body' => $shifted->scanOption('body'),
+                '--cc' => $shifted->scanOption('cc'),
+                '--bcc' => $shifted->scanOption('bcc'),
+                '--reply-to' => $shifted->scanOption('reply-to'),
+                '--attach' => $shifted->collectOption('attach'),
+                '--json' => $jsonFlag,
             ]),
             default => $this->unknownDraftsAction($action),
         };
     }
 
-    private function routeSend(string $email, array $args): int
+    private function routeSend(string $email, ParsedInput $p): int
     {
-        $parsed = $this->parseArgs($args);
-
         return $this->call('gmail:send', [
             'email' => $email,
-            '--to' => $parsed['--to'] ?? null,
-            '--subject' => $parsed['--subject'] ?? null,
-            '--body' => $parsed['--body'] ?? null,
-            '--cc' => $parsed['--cc'] ?? null,
-            '--bcc' => $parsed['--bcc'] ?? null,
-            '--reply-to' => $parsed['--reply-to'] ?? null,
-            '--attach' => $this->collectAttachments($args),
+            '--to' => $p->scanOption('to'),
+            '--subject' => $p->scanOption('subject'),
+            '--body' => $p->scanOption('body'),
+            '--cc' => $p->scanOption('cc'),
+            '--bcc' => $p->scanOption('bcc'),
+            '--reply-to' => $p->scanOption('reply-to'),
+            '--attach' => $p->collectOption('attach'),
+            '--json' => $this->shouldOutputJson(),
         ]);
-    }
-
-    /**
-     * Collects multiple --attach arguments.
-     */
-    private function collectAttachments(array $args): array
-    {
-        $attachments = [];
-        $i = 0;
-
-        while ($i < count($args)) {
-            if ($args[$i] === '--attach' && isset($args[$i + 1])) {
-                $attachments[] = $args[$i + 1];
-                $i += 2;
-            } else {
-                $i++;
-            }
-        }
-
-        return $attachments;
-    }
-
-    private function callEmailCommand(string $command, string $email, array $args): int
-    {
-        return $this->call($command, array_merge(
-            ['email' => $email],
-            $this->parseArgs($args)
-        ));
-    }
-
-    /**
-     * Parses raw arguments into named parameters.
-     */
-    private function parseArgs(array $args): array
-    {
-        $parsed = [];
-        $positional = [];
-        $i = 0;
-
-        while ($i < count($args)) {
-            $arg = $args[$i];
-
-            if (str_starts_with($arg, '--')) {
-                $key = substr($arg, 2);
-                // Check if next arg is a value or another flag
-                if (isset($args[$i + 1]) && ! str_starts_with($args[$i + 1], '--')) {
-                    $parsed["--{$key}"] = $args[$i + 1];
-                    $i += 2;
-                } else {
-                    $parsed["--{$key}"] = true;
-                    $i++;
-                }
-            } else {
-                $positional[] = $arg;
-                $i++;
-            }
-        }
-
-        if (! empty($positional)) {
-            $parsed['args'] = $positional;
-        }
-
-        return $parsed;
     }
 
     private function looksLikeEmail(string $value): bool
@@ -354,29 +289,17 @@ class DefaultCommand extends Command
 
     private function unknownAccountsAction(string $action): int
     {
-        $this->error("Unknown accounts action: {$action}");
-        $this->line('');
-        $this->line('Available actions: credentials, list, add, remove');
-
-        return self::FAILURE;
+        return $this->jsonError("Unknown accounts action: {$action}");
     }
 
     private function unknownEmailCommand(string $command): int
     {
-        $this->error("Unknown command: {$command}");
-        $this->line('');
-        $this->line('Available commands: search, thread, labels, drafts, send, url');
-
-        return self::FAILURE;
+        return $this->jsonError("Unknown command: {$command}");
     }
 
     private function unknownDraftsAction(string $action): int
     {
-        $this->error("Unknown drafts action: {$action}");
-        $this->line('');
-        $this->line('Available actions: list, get, delete, send, create');
-
-        return self::FAILURE;
+        return $this->jsonError("Unknown drafts action: {$action}");
     }
 
     private function showHelp(): int

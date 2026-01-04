@@ -2,6 +2,10 @@
 
 Laravel Zero CLI matching [gmcli v0.1.0](https://github.com/badlogic/gmcli) syntax.
 
+## Built With
+
+This skill was created using [php-cli-builder](../php-cli-builder/SKILL.md).
+
 ## Development Setup
 
 ```bash
@@ -37,8 +41,8 @@ src/
 
 First-time setup (builds PHP + micro.sfx):
 ```bash
-phpcli-spc-setup --doctor
-phpcli-spc-build
+php-cli-builder-spc-setup --doctor
+php-cli-builder-spc-build
 ```
 
 Build and install to skill root:

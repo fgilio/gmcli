@@ -2,6 +2,7 @@
 
 namespace App\Commands\Accounts;
 
+use App\Services\Analytics;
 use App\Services\GmcliEnv;
 use LaravelZero\Framework\Commands\Command;
 
@@ -16,8 +17,9 @@ class RemoveCommand extends Command
 
     protected $hidden = true;
 
-    public function handle(GmcliEnv $env): int
+    public function handle(GmcliEnv $env, Analytics $analytics): int
     {
+        $startTime = microtime(true);
         $email = $this->argument('email');
 
         if (empty($email)) {
@@ -25,11 +27,15 @@ class RemoveCommand extends Command
             $this->line('');
             $this->line('Usage: gmcli accounts remove <email>');
 
+            $analytics->track('accounts:remove', self::FAILURE, ['success' => false], $startTime);
+
             return self::FAILURE;
         }
 
         if (! $env->hasAccount()) {
             $this->error('No account configured.');
+
+            $analytics->track('accounts:remove', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;
         }
@@ -40,6 +46,8 @@ class RemoveCommand extends Command
             $this->error("Account not found: {$email}");
             $this->line("Configured account: {$existingEmail}");
 
+            $analytics->track('accounts:remove', self::FAILURE, ['success' => false], $startTime);
+
             return self::FAILURE;
         }
 
@@ -49,6 +57,8 @@ class RemoveCommand extends Command
         $env->save();
 
         $this->info("Account removed: {$existingEmail}");
+
+        $analytics->track('accounts:remove', self::SUCCESS, ['success' => true], $startTime);
 
         return self::SUCCESS;
     }

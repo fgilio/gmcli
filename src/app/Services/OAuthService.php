@@ -305,8 +305,14 @@ HTML;
         $decoded = json_decode($response, true);
 
         if ($httpCode !== 200) {
-            $errorMsg = $decoded['error_description'] ?? $decoded['error'] ?? 'Unknown error';
+            $errorMsg = is_array($decoded)
+                ? ($decoded['error_description'] ?? $decoded['error'] ?? 'Unknown error')
+                : $response;
             throw new RuntimeException("Token exchange failed: {$errorMsg}");
+        }
+
+        if (! is_array($decoded)) {
+            throw new RuntimeException("Invalid JSON response from token endpoint");
         }
 
         return $decoded;

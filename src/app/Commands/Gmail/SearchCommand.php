@@ -2,6 +2,7 @@
 
 namespace App\Commands\Gmail;
 
+use App\Services\Analytics;
 use App\Services\MimeHelper;
 
 /**
@@ -23,22 +24,33 @@ class SearchCommand extends BaseGmailCommand
 
     private MimeHelper $mime;
     private array $labelsMap = [];
+    private array $results = [];
 
-    public function handle(): int
+    public function handle(Analytics $analytics): int
     {
+        $startTime = microtime(true);
         $email = $this->argument('email');
         $query = $this->option('query');
         $max = (int) $this->option('max');
         $pageToken = $this->option('page');
 
         if (empty($query)) {
+            if ($this->shouldOutputJson()) {
+                $analytics->track('gmail:search', self::FAILURE, ['result_count' => 0], $startTime);
+
+                return $this->jsonError('Missing search query.');
+            }
             $this->error('Missing search query.');
             $this->line('Usage: gmcli <email> search "<query>" [--max N] [--page TOKEN]');
+
+            $analytics->track('gmail:search', self::FAILURE, ['result_count' => 0], $startTime);
 
             return self::FAILURE;
         }
 
         if (! $this->initGmail($email)) {
+            $analytics->track('gmail:search', self::FAILURE, ['result_count' => 0], $startTime);
+
             return self::FAILURE;
         }
 
@@ -64,14 +76,39 @@ class SearchCommand extends BaseGmailCommand
             $threads = $response['threads'] ?? [];
 
             if (empty($threads)) {
+                if ($this->shouldOutputJson()) {
+                    $analytics->track('gmail:search', self::SUCCESS, ['result_count' => 0], $startTime);
+
+                    return $this->outputJson([]);
+                }
                 $this->info('No threads found.');
+
+                $analytics->track('gmail:search', self::SUCCESS, ['result_count' => 0], $startTime);
 
                 return self::SUCCESS;
             }
 
             // Fetch thread details for each result
             foreach ($threads as $thread) {
-                $this->displayThread($thread['id']);
+                $this->collectThread($thread['id']);
+            }
+
+            // JSON output
+            if ($this->shouldOutputJson()) {
+                $output = ['threads' => $this->results];
+                if (isset($response['nextPageToken'])) {
+                    $output['nextPageToken'] = $response['nextPageToken'];
+                }
+
+                $analytics->track('gmail:search', self::SUCCESS, ['result_count' => count($this->results)], $startTime);
+
+                return $this->outputJson($output);
+            }
+
+            // Text output
+            foreach ($this->results as $result) {
+                $labels = $result['labels'] ? '['.implode(', ', $result['labels']).']' : '';
+                $this->line("{$result['threadId']}\t{$result['date']}\t{$result['from']}\t{$result['subject']}\t{$labels}");
             }
 
             // Show pagination token if present
@@ -80,8 +117,15 @@ class SearchCommand extends BaseGmailCommand
                 $this->line("Next page: --page {$response['nextPageToken']}");
             }
 
+            $analytics->track('gmail:search', self::SUCCESS, ['result_count' => count($this->results)], $startTime);
+
             return self::SUCCESS;
         } catch (\RuntimeException $e) {
+            $analytics->track('gmail:search', self::FAILURE, ['result_count' => 0], $startTime);
+
+            if ($this->shouldOutputJson()) {
+                return $this->jsonError($e->getMessage());
+            }
             $this->error($e->getMessage());
 
             return self::FAILURE;
@@ -98,7 +142,7 @@ class SearchCommand extends BaseGmailCommand
         }
     }
 
-    private function displayThread(string $threadId): void
+    private function collectThread(string $threadId): void
     {
         $thread = $this->gmail->get("/users/me/threads/{$threadId}", [
             'format' => 'metadata',
@@ -126,10 +170,18 @@ class SearchCommand extends BaseGmailCommand
 
         // Get labels
         $labelIds = $firstMessage['labelIds'] ?? [];
-        $labels = $this->formatLabels($labelIds);
+        $labelNames = [];
+        foreach ($labelIds as $id) {
+            $labelNames[] = $this->labelsMap[$id] ?? $id;
+        }
 
-        // Output: threadId  date  from  subject  [labels]
-        $this->line("{$threadId}\t{$date}\t{$from}\t{$subject}\t{$labels}");
+        $this->results[] = [
+            'threadId' => $threadId,
+            'date' => $date,
+            'from' => $from,
+            'subject' => $subject,
+            'labels' => $labelNames,
+        ];
     }
 
     private function formatDate(string $date): string
@@ -155,19 +207,5 @@ class SearchCommand extends BaseGmailCommand
         }
 
         return $from;
-    }
-
-    private function formatLabels(array $labelIds): string
-    {
-        if (empty($labelIds)) {
-            return '';
-        }
-
-        $names = [];
-        foreach ($labelIds as $id) {
-            $names[] = $this->labelsMap[$id] ?? $id;
-        }
-
-        return '[' . implode(', ', $names) . ']';
     }
 }

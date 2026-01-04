@@ -2,6 +2,7 @@
 
 namespace App\Commands\Accounts;
 
+use App\Services\Analytics;
 use App\Services\GmcliEnv;
 use App\Services\OAuthService;
 use LaravelZero\Framework\Commands\Command;
@@ -24,14 +25,17 @@ class AddCommand extends Command
 
     protected $hidden = true;
 
-    public function handle(GmcliEnv $env): int
+    public function handle(GmcliEnv $env, Analytics $analytics): int
     {
+        $startTime = microtime(true);
         $email = $this->argument('email');
 
         if (empty($email)) {
             $this->error('Missing email address.');
             $this->line('');
             $this->line('Usage: gmcli accounts add <email> [--manual]');
+
+            $analytics->track('accounts:add', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;
         }
@@ -40,6 +44,8 @@ class AddCommand extends Command
             $this->error('No credentials configured.');
             $this->line('Run: gmcli accounts credentials <file.json> first.');
 
+            $analytics->track('accounts:add', self::FAILURE, ['success' => false], $startTime);
+
             return self::FAILURE;
         }
 
@@ -47,6 +53,8 @@ class AddCommand extends Command
             $existingEmail = $env->getEmail();
             $this->error("Account already configured: {$existingEmail}");
             $this->line('Remove it first: gmcli accounts remove ' . $existingEmail);
+
+            $analytics->track('accounts:add', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;
         }
@@ -70,9 +78,13 @@ class AddCommand extends Command
 
             $this->info("Account added: {$email}");
 
+            $analytics->track('accounts:add', self::SUCCESS, ['success' => true], $startTime);
+
             return self::SUCCESS;
         } catch (RuntimeException $e) {
             $this->error($e->getMessage());
+
+            $analytics->track('accounts:add', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;
         }
@@ -88,8 +100,9 @@ class AddCommand extends Command
             $this->line($url);
             $this->line('');
 
-            // Open browser on macOS
-            exec("open " . escapeshellarg($url) . " 2>/dev/null &");
+            // Open browser (cross-platform)
+            $command = PHP_OS_FAMILY === 'Darwin' ? 'open' : 'xdg-open';
+            exec("{$command} " . escapeshellarg($url) . ' 2>/dev/null &');
         });
     }
 

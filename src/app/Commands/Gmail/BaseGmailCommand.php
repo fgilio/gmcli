@@ -6,6 +6,7 @@ use App\Services\GmailClient;
 use App\Services\GmailLogger;
 use App\Services\GmcliEnv;
 use LaravelZero\Framework\Commands\Command;
+use Symfony\Component\Console\Input\InputOption;
 
 /**
  * Base class for Gmail commands.
@@ -14,12 +15,19 @@ use LaravelZero\Framework\Commands\Command;
  * - Email validation against configured account
  * - Gmail client creation with logging
  * - Verbose/debug output support
+ * - JSON output support via --json flag
  */
 abstract class BaseGmailCommand extends Command
 {
     protected GmcliEnv $env;
     protected GmailClient $gmail;
     protected GmailLogger $logger;
+
+    protected function configure(): void
+    {
+        parent::configure();
+        $this->addOption('json', null, InputOption::VALUE_NONE, 'Output as JSON');
+    }
 
     /**
      * Initializes Gmail client and validates email.
@@ -71,5 +79,33 @@ abstract class BaseGmailCommand extends Command
         }
 
         return true;
+    }
+
+    /**
+     * Checks if output should be JSON (explicit --json flag).
+     */
+    protected function shouldOutputJson(): bool
+    {
+        return $this->hasOption('json') && $this->option('json');
+    }
+
+    /**
+     * Outputs data in standard JSON envelope.
+     */
+    protected function outputJson(mixed $data): int
+    {
+        $this->line(json_encode(['data' => $data], JSON_THROW_ON_ERROR));
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Outputs error as JSON to stderr.
+     */
+    protected function jsonError(string $message): int
+    {
+        fwrite(STDERR, json_encode(['error' => $message]) . "\n");
+
+        return self::FAILURE;
     }
 }

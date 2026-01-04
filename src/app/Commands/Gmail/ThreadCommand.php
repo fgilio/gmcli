@@ -2,6 +2,7 @@
 
 namespace App\Commands\Gmail;
 
+use App\Services\Analytics;
 use App\Services\MimeHelper;
 
 /**
@@ -22,20 +23,30 @@ class ThreadCommand extends BaseGmailCommand
 
     private MimeHelper $mime;
 
-    public function handle(): int
+    public function handle(Analytics $analytics): int
     {
+        $startTime = microtime(true);
         $email = $this->argument('email');
         $threadId = $this->option('thread-id');
         $download = $this->option('download');
 
         if (empty($threadId)) {
+            if ($this->shouldOutputJson()) {
+                $analytics->track('gmail:thread', self::FAILURE, ['found' => false], $startTime);
+
+                return $this->jsonError('Missing thread ID.');
+            }
             $this->error('Missing thread ID.');
             $this->line('Usage: gmcli <email> thread <threadId> [--download]');
+
+            $analytics->track('gmail:thread', self::FAILURE, ['found' => false], $startTime);
 
             return self::FAILURE;
         }
 
         if (! $this->initGmail($email)) {
+            $analytics->track('gmail:thread', self::FAILURE, ['found' => false], $startTime);
+
             return self::FAILURE;
         }
 
@@ -51,11 +62,31 @@ class ThreadCommand extends BaseGmailCommand
             $messages = $thread['messages'] ?? [];
 
             if (empty($messages)) {
+                if ($this->shouldOutputJson()) {
+                    $analytics->track('gmail:thread', self::SUCCESS, ['found' => true, 'message_count' => 0], $startTime);
+
+                    return $this->outputJson(['threadId' => $threadId, 'messages' => []]);
+                }
                 $this->info('Thread has no messages.');
+
+                $analytics->track('gmail:thread', self::SUCCESS, ['found' => true, 'message_count' => 0], $startTime);
 
                 return self::SUCCESS;
             }
 
+            // JSON output
+            if ($this->shouldOutputJson()) {
+                $jsonMessages = [];
+                foreach ($messages as $message) {
+                    $jsonMessages[] = $this->buildMessageData($message);
+                }
+
+                $analytics->track('gmail:thread', self::SUCCESS, ['found' => true, 'message_count' => count($messages)], $startTime);
+
+                return $this->outputJson(['threadId' => $threadId, 'messages' => $jsonMessages]);
+            }
+
+            // Text output
             foreach ($messages as $index => $message) {
                 if ($index > 0) {
                     $this->line(str_repeat('-', 60));
@@ -64,12 +95,36 @@ class ThreadCommand extends BaseGmailCommand
                 $this->displayMessage($message, $download);
             }
 
+            $analytics->track('gmail:thread', self::SUCCESS, ['found' => true, 'message_count' => count($messages)], $startTime);
+
             return self::SUCCESS;
         } catch (\RuntimeException $e) {
-            $this->error($e->getMessage());
+            $analytics->track('gmail:thread', self::FAILURE, ['found' => false], $startTime);
 
-            return self::FAILURE;
+            return $this->jsonError($e->getMessage());
         }
+    }
+
+    private function buildMessageData(array $message): array
+    {
+        $payload = $message['payload'] ?? [];
+
+        return [
+            'id' => $message['id'],
+            'from' => $this->mime->getHeader($payload, 'From') ?? '',
+            'to' => $this->mime->getHeader($payload, 'To') ?? '',
+            'cc' => $this->mime->getHeader($payload, 'Cc'),
+            'date' => $this->mime->getHeader($payload, 'Date') ?? '',
+            'subject' => $this->mime->getHeader($payload, 'Subject') ?? '(no subject)',
+            'messageIdHeader' => $this->mime->getHeader($payload, 'Message-ID') ?? '',
+            'labels' => $message['labelIds'] ?? [],
+            'body' => $this->mime->extractTextBody($payload),
+            'attachments' => array_map(fn($a) => [
+                'filename' => $a['filename'],
+                'mimeType' => $a['mimeType'],
+                'size' => $a['size'],
+            ], $this->mime->getAttachments($payload)),
+        ];
     }
 
     private function displayMessage(array $message, bool $download): void

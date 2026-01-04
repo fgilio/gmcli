@@ -2,6 +2,7 @@
 
 namespace App\Commands\Gmail;
 
+use App\Services\Analytics;
 use App\Services\MessageBuilder;
 use App\Services\MimeHelper;
 
@@ -24,8 +25,9 @@ class DraftsCreateCommand extends BaseGmailCommand
 
     protected $hidden = true;
 
-    public function handle(): int
+    public function handle(Analytics $analytics): int
     {
+        $startTime = microtime(true);
         $email = $this->argument('email');
         $to = $this->option('to');
         $subject = $this->option('subject');
@@ -36,13 +38,22 @@ class DraftsCreateCommand extends BaseGmailCommand
         $attachments = $this->option('attach') ?: [];
 
         if (empty($to) || empty($subject) || empty($body)) {
+            if ($this->shouldOutputJson()) {
+                $analytics->track('gmail:drafts:create', self::FAILURE, ['success' => false], $startTime);
+
+                return $this->jsonError('Missing required options: --to, --subject, --body');
+            }
             $this->error('Missing required options.');
             $this->line('Usage: gmcli <email> drafts create --to <emails> --subject <s> --body <b>');
+
+            $analytics->track('gmail:drafts:create', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;
         }
 
         if (! $this->initGmail($email)) {
+            $analytics->track('gmail:drafts:create', self::FAILURE, ['success' => false], $startTime);
+
             return self::FAILURE;
         }
 
@@ -83,13 +94,26 @@ class DraftsCreateCommand extends BaseGmailCommand
             $response = $this->gmail->post('/users/me/drafts', $payload);
 
             $draftId = $response['id'] ?? '';
+            $messageId = $response['message']['id'] ?? '';
+
+            if ($this->shouldOutputJson()) {
+                $analytics->track('gmail:drafts:create', self::SUCCESS, ['success' => true], $startTime);
+
+                return $this->outputJson([
+                    'draftId' => $draftId,
+                    'messageId' => $messageId,
+                ]);
+            }
+
             $this->info("Draft created: {$draftId}");
+
+            $analytics->track('gmail:drafts:create', self::SUCCESS, ['success' => true], $startTime);
 
             return self::SUCCESS;
         } catch (\RuntimeException $e) {
-            $this->error($e->getMessage());
+            $analytics->track('gmail:drafts:create', self::FAILURE, ['success' => false], $startTime);
 
-            return self::FAILURE;
+            return $this->jsonError($e->getMessage());
         }
     }
 
