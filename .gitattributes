@@ -1,2 +1,2 @@
-gmcli filter=lfs diff=lfs merge=lfs -text
 *.phar filter=lfs diff=lfs merge=lfs -text
+gmcli filter=lfs diff=lfs merge=lfs -text
