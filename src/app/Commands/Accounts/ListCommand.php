@@ -16,7 +16,6 @@ class ListCommand extends Command
 
     protected $description = 'List configured Gmail accounts';
 
-    protected $hidden = true;
 
     protected function configure(): void
     {

@@ -9,18 +9,15 @@ use App\Services\Analytics;
  */
 class DraftsListCommand extends BaseGmailCommand
 {
-    protected $signature = 'gmail:drafts:list {email}';
+    protected $signature = 'gmail:drafts:list ';
 
     protected $description = 'List all drafts';
-
-    protected $hidden = true;
-
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
-        $email = $this->argument('email');
+        $email = null;
 
-        if (! $this->initGmail($email)) {
+        if (! $this->initGmail()) {
             $analytics->track('gmail:drafts:list', self::FAILURE, ['count' => 0], $startTime);
 
             return self::FAILURE;

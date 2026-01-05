@@ -10,17 +10,13 @@ use App\Services\Analytics;
 class DraftsSendCommand extends BaseGmailCommand
 {
     protected $signature = 'gmail:drafts:send
-        {email}
         {--draft-id= : Draft ID to send}';
 
     protected $description = 'Send a draft';
-
-    protected $hidden = true;
-
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
-        $email = $this->argument('email');
+        $email = null;
         $draftId = $this->option('draft-id');
 
         if (empty($draftId)) {
@@ -37,7 +33,7 @@ class DraftsSendCommand extends BaseGmailCommand
             return self::FAILURE;
         }
 
-        if (! $this->initGmail($email)) {
+        if (! $this->initGmail()) {
             $analytics->track('gmail:drafts:send', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;

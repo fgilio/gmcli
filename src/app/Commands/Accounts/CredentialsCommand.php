@@ -18,7 +18,6 @@ class CredentialsCommand extends Command
 
     protected $description = 'Set OAuth credentials from Google Cloud JSON';
 
-    protected $hidden = true;
 
     public function handle(GmcliPaths $paths, GmcliEnv $env, Analytics $analytics): int
     {

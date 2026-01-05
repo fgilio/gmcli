@@ -23,7 +23,6 @@ class AddCommand extends Command
 
     protected $description = 'Add a Gmail account via OAuth';
 
-    protected $hidden = true;
 
     public function handle(GmcliEnv $env, Analytics $analytics): int
     {

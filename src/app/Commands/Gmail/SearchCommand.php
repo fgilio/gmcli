@@ -13,15 +13,11 @@ use App\Services\MimeHelper;
 class SearchCommand extends BaseGmailCommand
 {
     protected $signature = 'gmail:search
-        {email}
         {--query= : Search query}
         {--max=20 : Maximum results}
         {--page= : Page token for pagination}';
 
     protected $description = 'Search threads using Gmail query syntax';
-
-    protected $hidden = true;
-
     private MimeHelper $mime;
     private array $labelsMap = [];
     private array $results = [];
@@ -29,7 +25,7 @@ class SearchCommand extends BaseGmailCommand
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
-        $email = $this->argument('email');
+        $email = null;
         $query = $this->option('query');
         $max = (int) $this->option('max');
         $pageToken = $this->option('page');
@@ -48,7 +44,7 @@ class SearchCommand extends BaseGmailCommand
             return self::FAILURE;
         }
 
-        if (! $this->initGmail($email)) {
+        if (! $this->initGmail()) {
             $analytics->track('gmail:search', self::FAILURE, ['result_count' => 0], $startTime);
 
             return self::FAILURE;

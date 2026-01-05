@@ -12,7 +12,6 @@ use App\Services\MimeHelper;
 class SendCommand extends BaseGmailCommand
 {
     protected $signature = 'gmail:send
-        {email}
         {--to= : Recipients (comma-separated)}
         {--subject= : Subject line}
         {--body= : Message body}
@@ -22,13 +21,10 @@ class SendCommand extends BaseGmailCommand
         {--attach=* : File attachments}';
 
     protected $description = 'Send an email directly';
-
-    protected $hidden = true;
-
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
-        $email = $this->argument('email');
+        $email = null;
         $to = $this->option('to');
         $subject = $this->option('subject');
         $body = $this->option('body');
@@ -51,7 +47,7 @@ class SendCommand extends BaseGmailCommand
             return self::FAILURE;
         }
 
-        if (! $this->initGmail($email)) {
+        if (! $this->initGmail()) {
             $analytics->track('gmail:send', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;

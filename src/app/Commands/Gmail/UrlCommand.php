@@ -12,17 +12,13 @@ use App\Services\Analytics;
 class UrlCommand extends BaseGmailCommand
 {
     protected $signature = 'gmail:url
-        {email}
         {--thread-ids=* : Thread IDs}';
 
     protected $description = 'Generate Gmail web URLs for threads';
-
-    protected $hidden = true;
-
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
-        $email = $this->argument('email');
+        $email = null;
         $threadIds = $this->option('thread-ids') ?: [];
 
         if (empty($threadIds)) {
@@ -39,7 +35,7 @@ class UrlCommand extends BaseGmailCommand
             return self::FAILURE;
         }
 
-        if (! $this->initGmail($email)) {
+        if (! $this->initGmail()) {
             $analytics->track('gmail:url', self::FAILURE, ['count' => 0], $startTime);
 
             return self::FAILURE;

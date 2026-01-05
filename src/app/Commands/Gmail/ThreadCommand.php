@@ -13,20 +13,16 @@ use App\Services\MimeHelper;
 class ThreadCommand extends BaseGmailCommand
 {
     protected $signature = 'gmail:thread
-        {email}
         {--thread-id= : Thread ID to view}
         {--download : Download attachments}';
 
     protected $description = 'Get thread with all messages';
-
-    protected $hidden = true;
-
     private MimeHelper $mime;
 
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
-        $email = $this->argument('email');
+        $email = null;
         $threadId = $this->option('thread-id');
         $download = $this->option('download');
 
@@ -44,7 +40,7 @@ class ThreadCommand extends BaseGmailCommand
             return self::FAILURE;
         }
 
-        if (! $this->initGmail($email)) {
+        if (! $this->initGmail()) {
             $analytics->track('gmail:thread', self::FAILURE, ['found' => false], $startTime);
 
             return self::FAILURE;

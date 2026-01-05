@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1cae6e60ab37d31fefa69d1c9eae9a51",
+    "content-hash": "b68f6c7229925c6eb1ec2bab2b9992eb",
     "packages": [
         {
             "name": "brick/math",
@@ -291,16 +291,16 @@
         },
         {
             "name": "fgilio/agent-skill-foundation",
-            "version": "v0.2.0",
+            "version": "v0.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/fgilio/agent-skill-foundation",
-                "reference": "369ebcad3f15af341c3a64e12075612151012d35"
+                "reference": "ea75e95ea2f32ffac8932896d8e782557398d8fc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/fgilio/agent-skill-foundation/zipball/369ebcad3f15af341c3a64e12075612151012d35",
-                "reference": "369ebcad3f15af341c3a64e12075612151012d35",
+                "url": "https://api.github.com/repos/fgilio/agent-skill-foundation/zipball/ea75e95ea2f32ffac8932896d8e782557398d8fc",
+                "reference": "ea75e95ea2f32ffac8932896d8e782557398d8fc",
                 "shasum": ""
             },
             "require": {
@@ -311,7 +311,9 @@
             },
             "require-dev": {
                 "laravel-zero/framework": "^12.0",
+                "laravel/pint": "^1.18",
                 "pestphp/pest": "^3.0",
+                "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^11.0"
             },
             "type": "library",
@@ -345,7 +347,7 @@
                 "routing",
                 "skills"
             ],
-            "time": "2026-01-04T12:20:43+00:00"
+            "time": "2026-01-05T13:02:06+00:00"
         },
         {
             "name": "filp/whoops",

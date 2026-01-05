@@ -11,19 +11,15 @@ use App\Services\LabelResolver;
 class LabelsModifyCommand extends BaseGmailCommand
 {
     protected $signature = 'gmail:labels:modify
-        {email}
         {--thread-ids=* : Thread IDs to modify}
         {--add=* : Labels to add}
         {--remove=* : Labels to remove}';
 
     protected $description = 'Modify labels on threads';
-
-    protected $hidden = true;
-
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
-        $email = $this->argument('email');
+        $email = null;
         $threadIds = $this->option('thread-ids') ?: [];
         $addLabels = $this->option('add') ?: [];
         $removeLabels = $this->option('remove') ?: [];
@@ -56,7 +52,7 @@ class LabelsModifyCommand extends BaseGmailCommand
             return self::FAILURE;
         }
 
-        if (! $this->initGmail($email)) {
+        if (! $this->initGmail()) {
             $analytics->track('gmail:labels:modify', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;

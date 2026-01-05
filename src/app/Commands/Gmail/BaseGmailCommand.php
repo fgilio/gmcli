@@ -12,7 +12,7 @@ use Symfony\Component\Console\Input\InputOption;
  * Base class for Gmail commands.
  *
  * Provides common functionality:
- * - Email validation against configured account
+ * - Account resolution (from --account option or default)
  * - Gmail client creation with logging
  * - Verbose/debug output support
  * - JSON output support via --json flag
@@ -22,19 +22,38 @@ abstract class BaseGmailCommand extends Command
     protected GmcliEnv $env;
     protected GmailClient $gmail;
     protected GmailLogger $logger;
+    protected string $account;
 
     protected function configure(): void
     {
         parent::configure();
         $this->addOption('json', null, InputOption::VALUE_NONE, 'Output as JSON');
+        $this->addOption('account', 'a', InputOption::VALUE_REQUIRED, 'Account email (uses default if not specified)');
     }
 
     /**
-     * Initializes Gmail client and validates email.
+     * Resolves account from --account option or default.
+     */
+    protected function resolveAccount(): ?string
+    {
+        $this->env = app(GmcliEnv::class);
+
+        // Use --account option if provided
+        $account = $this->option('account');
+        if ($account) {
+            return $account;
+        }
+
+        // Fall back to configured default
+        return $this->env->getEmail();
+    }
+
+    /**
+     * Initializes Gmail client for the resolved account.
      *
      * @return bool True if initialization succeeded
      */
-    protected function initGmail(string $email): bool
+    protected function initGmail(?string $email = null): bool
     {
         $this->env = app(GmcliEnv::class);
         $this->logger = new GmailLogger(
@@ -43,16 +62,29 @@ abstract class BaseGmailCommand extends Command
             $this->output->isVeryVerbose()
         );
 
+        // Resolve account if not provided
+        $email = $email ?? $this->resolveAccount();
+
+        if (! $email) {
+            $this->error('No account specified and no default configured.');
+            $this->line('Either use: gmcli gmail:search --account you@gmail.com "query"');
+            $this->line('Or add an account: gmcli accounts:add you@gmail.com');
+
+            return false;
+        }
+
+        $this->account = $email;
+
         if (! $this->env->hasCredentials()) {
             $this->error('No credentials configured.');
-            $this->line('Run: gmcli accounts credentials <file.json>');
+            $this->line('Run: gmcli accounts:credentials <file.json>');
 
             return false;
         }
 
         if (! $this->env->hasAccount()) {
             $this->error('No account configured.');
-            $this->line('Run: gmcli accounts add <email>');
+            $this->line('Run: gmcli accounts:add <email>');
 
             return false;
         }

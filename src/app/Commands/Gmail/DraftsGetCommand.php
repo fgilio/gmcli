@@ -11,20 +11,16 @@ use App\Services\MimeHelper;
 class DraftsGetCommand extends BaseGmailCommand
 {
     protected $signature = 'gmail:drafts:get
-        {email}
         {--draft-id= : Draft ID}
         {--download : Download attachments}';
 
     protected $description = 'View draft with attachments';
-
-    protected $hidden = true;
-
     private MimeHelper $mime;
 
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
-        $email = $this->argument('email');
+        $email = null;
         $draftId = $this->option('draft-id');
         $download = $this->option('download');
 
@@ -42,7 +38,7 @@ class DraftsGetCommand extends BaseGmailCommand
             return self::FAILURE;
         }
 
-        if (! $this->initGmail($email)) {
+        if (! $this->initGmail()) {
             $analytics->track('gmail:drafts:get', self::FAILURE, ['found' => false], $startTime);
 
             return self::FAILURE;

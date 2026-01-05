@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => App\Commands\DefaultCommand::class,
+    'default' => NunoMaduro\LaravelConsoleSummary\SummaryCommand::class,
 
     /*
     |--------------------------------------------------------------------------
@@ -55,6 +55,7 @@ return [
     */
 
     'hidden' => [
+        // Framework internals
         NunoMaduro\LaravelConsoleSummary\SummaryCommand::class,
         Symfony\Component\Console\Command\DumpCompletionCommand::class,
         Symfony\Component\Console\Command\HelpCommand::class,
@@ -63,6 +64,9 @@ return [
         Illuminate\Console\Scheduling\ScheduleFinishCommand::class,
         Illuminate\Foundation\Console\VendorPublishCommand::class,
         LaravelZero\Framework\Commands\StubPublishCommand::class,
+
+        // Dev commands (not in released binary)
+        App\Commands\BuildCommand::class,
     ],
 
     /*

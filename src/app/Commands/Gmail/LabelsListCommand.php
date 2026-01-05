@@ -9,18 +9,15 @@ use App\Services\Analytics;
  */
 class LabelsListCommand extends BaseGmailCommand
 {
-    protected $signature = 'gmail:labels:list {email}';
+    protected $signature = 'gmail:labels:list ';
 
     protected $description = 'List all Gmail labels';
-
-    protected $hidden = true;
-
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
-        $email = $this->argument('email');
+        $email = null;
 
-        if (! $this->initGmail($email)) {
+        if (! $this->initGmail()) {
             $analytics->track('gmail:labels:list', self::FAILURE, ['count' => 0], $startTime);
 
             return self::FAILURE;

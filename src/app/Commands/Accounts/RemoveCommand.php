@@ -15,7 +15,6 @@ class RemoveCommand extends Command
 
     protected $description = 'Remove a Gmail account';
 
-    protected $hidden = true;
 
     public function handle(GmcliEnv $env, Analytics $analytics): int
     {

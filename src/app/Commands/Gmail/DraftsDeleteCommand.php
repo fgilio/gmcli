@@ -10,17 +10,13 @@ use App\Services\Analytics;
 class DraftsDeleteCommand extends BaseGmailCommand
 {
     protected $signature = 'gmail:drafts:delete
-        {email}
         {--draft-id= : Draft ID to delete}';
 
     protected $description = 'Delete a draft';
-
-    protected $hidden = true;
-
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
-        $email = $this->argument('email');
+        $email = null;
         $draftId = $this->option('draft-id');
 
         if (empty($draftId)) {
@@ -37,7 +33,7 @@ class DraftsDeleteCommand extends BaseGmailCommand
             return self::FAILURE;
         }
 
-        if (! $this->initGmail($email)) {
+        if (! $this->initGmail()) {
             $analytics->track('gmail:drafts:delete', self::FAILURE, ['success' => false], $startTime);
 
             return self::FAILURE;
