@@ -13,7 +13,7 @@ use App\Services\MimeHelper;
 class SearchCommand extends BaseGmailCommand
 {
     protected $signature = 'gmail:search
-        {--query= : Search query}
+        {query : Search query (Gmail search syntax)}
         {--max=20 : Maximum results}
         {--page= : Page token for pagination}';
 
@@ -25,24 +25,9 @@ class SearchCommand extends BaseGmailCommand
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
-        $email = null;
-        $query = $this->option('query');
+        $query = $this->argument('query');
         $max = (int) $this->option('max');
         $pageToken = $this->option('page');
-
-        if (empty($query)) {
-            if ($this->shouldOutputJson()) {
-                $analytics->track('gmail:search', self::FAILURE, ['result_count' => 0], $startTime);
-
-                return $this->jsonError('Missing search query.');
-            }
-            $this->error('Missing search query.');
-            $this->line('Usage: gmcli <email> search "<query>" [--max N] [--page TOKEN]');
-
-            $analytics->track('gmail:search', self::FAILURE, ['result_count' => 0], $startTime);
-
-            return self::FAILURE;
-        }
 
         if (! $this->initGmail()) {
             $analytics->track('gmail:search', self::FAILURE, ['result_count' => 0], $startTime);
