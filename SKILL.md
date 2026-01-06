@@ -16,13 +16,16 @@ description: >
 | `gmcli accounts:add <email>` | Add Gmail account via OAuth |
 | `gmcli accounts:remove <email>` | Remove account |
 | `gmcli gmail:search "<query>"` | Search threads |
-| `gmcli gmail:thread <id>` | View thread messages |
+| `gmcli gmail:thread --thread-id=<id>` | View thread messages |
 | `gmcli gmail:labels:list` | List all labels |
-| `gmcli gmail:labels:modify <ids...> --add/--remove` | Modify thread labels |
+| `gmcli gmail:labels:modify --thread-ids=<ids> --add/--remove` | Modify thread labels |
 | `gmcli gmail:drafts:list` | List drafts |
 | `gmcli gmail:drafts:create --to --subject --body` | Create draft |
+| `gmcli gmail:drafts:get --draft-id=<id>` | View draft |
+| `gmcli gmail:drafts:delete --draft-id=<id>` | Delete draft |
+| `gmcli gmail:drafts:send --draft-id=<id>` | Send draft |
 | `gmcli gmail:send --to --subject --body` | Send email |
-| `gmcli gmail:url <ids...>` | Generate Gmail web URLs |
+| `gmcli gmail:url --thread-ids=<ids>` | Generate Gmail web URLs |
 
 Account is optional when configured. Use `-a <email>` to override.
 
@@ -46,7 +49,7 @@ gmcli accounts:add you@gmail.com
 gmcli gmail:search "in:inbox is:unread"
 
 # View thread with attachments
-gmcli gmail:thread 19aea1f2f3532db5 --download
+gmcli gmail:thread --thread-id=19aea1f2f3532db5 --download
 
 # Send email
 gmcli gmail:send --to "recipient@example.com" \
@@ -58,8 +61,8 @@ gmcli gmail:send --to "recipient@example.com" \
     --reply-to 19aea1f2f3532db5
 
 # Label operations
-gmcli gmail:labels:modify abc123 --remove UNREAD
-gmcli gmail:labels:modify abc123 --add TRASH --remove INBOX
+gmcli gmail:labels:modify --thread-ids=abc123 --remove UNREAD
+gmcli gmail:labels:modify --thread-ids=abc123 --add TRASH --remove INBOX
 ```
 
 ## JSON Output
