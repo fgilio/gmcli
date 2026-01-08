@@ -18,7 +18,8 @@ class DraftsCreateCommand extends BaseGmailCommand
         {--cc= : CC recipients (comma-separated)}
         {--bcc= : BCC recipients (comma-separated)}
         {--reply-to= : Message ID to reply to}
-        {--attach=* : File attachments}';
+        {--attach=* : File attachments}
+        {--open : Open Gmail in browser after creating draft}';
 
     protected $description = 'Create a new draft';
     public function handle(Analytics $analytics): int
@@ -103,6 +104,10 @@ class DraftsCreateCommand extends BaseGmailCommand
 
             $this->info("Draft created: {$draftId}");
 
+            if ($this->option('open')) {
+                $this->openInBrowser($builder->getThreadId());
+            }
+
             $analytics->track('gmail:drafts:create', self::SUCCESS, ['success' => true], $startTime);
 
             return self::SUCCESS;
@@ -138,5 +143,25 @@ class DraftsCreateCommand extends BaseGmailCommand
         $newReferences = $references ? "{$references} {$headerMsgId}" : $headerMsgId;
 
         $builder->replyTo($headerMsgId, $newReferences, $message['threadId'] ?? null);
+    }
+
+    /**
+     * Opens Gmail in browser after draft creation.
+     */
+    private function openInBrowser(?string $threadId): void
+    {
+        $email = urlencode($this->env->getEmail());
+
+        if ($threadId) {
+            $hex = strtolower(ltrim($threadId, '0x'));
+            $url = "https://mail.google.com/mail/u/?authuser={$email}#all/{$hex}";
+        } else {
+            $url = "https://mail.google.com/mail/u/?authuser={$email}#drafts";
+        }
+
+        $command = PHP_OS_FAMILY === 'Darwin' ? 'open' : 'xdg-open';
+        exec("{$command} " . escapeshellarg($url) . ' 2>/dev/null &');
+
+        $this->logger->verbose("Opened: {$url}");
     }
 }

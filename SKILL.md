@@ -27,6 +27,22 @@ description: >
 | `gmcli gmail:send --to --subject --body` | Send email |
 | `gmcli gmail:url --thread-ids=<ids>` | Generate Gmail web URLs |
 
+## Full Options Reference
+
+| Command | Options |
+|---------|---------|
+| `gmail:search` | `--max=20` `--page` `--json` |
+| `gmail:thread` | `--thread-id` `--download` `--json` |
+| `gmail:send` | `--to` `--subject` `--body` `--cc` `--bcc` `--reply-to` `--attach` `--json` |
+| `gmail:drafts:create` | `--to` `--subject` `--body` `--cc` `--bcc` `--reply-to` `--attach` `--open` `--json` |
+| `gmail:drafts:get` | `--draft-id` `--download` `--json` |
+| `gmail:drafts:delete` | `--draft-id` `--json` |
+| `gmail:drafts:send` | `--draft-id` `--json` |
+| `gmail:labels:modify` | `--thread-ids` `--add` `--remove` `--json` |
+| `gmail:url` | `--thread-ids` `--json` |
+| `gmail:labels:list` | `--json` |
+| `gmail:drafts:list` | `--json` |
+
 Account is optional when configured. Use `-a <email>` to override.
 
 ## Setup
@@ -55,10 +71,18 @@ gmcli gmail:thread --thread-id=19aea1f2f3532db5 --download
 gmcli gmail:send --to "recipient@example.com" \
     --subject "Hello" --body "Message body"
 
-# Reply to thread
+# Reply to thread (send immediately)
 gmcli gmail:send --to "recipient@example.com" \
     --subject "Re: Hello" --body "Reply text" \
     --reply-to 19aea1f2f3532db5
+
+# Create draft reply (opens in browser)
+gmcli gmail:drafts:create --to "recipient@example.com" \
+    --subject "Re: Hello" --body "Reply text" \
+    --reply-to 19aea1f2f3532db5 --open
+
+# Search with limit
+gmcli gmail:search "is:unread" --max=5
 
 # Label operations
 gmcli gmail:labels:modify --thread-ids=abc123 --remove UNREAD
