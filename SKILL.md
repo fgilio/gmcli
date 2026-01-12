@@ -1,8 +1,9 @@
 ---
 name: gmcli
 description: >
-  Gmail CLI tool for managing email from the command line.
-  Trigger words: gmail, email, gmcli, mail.
+  Gmail CLI. Read, search, and manage email from the terminal.
+user-invocable: true
+disable-model-invocation: false
 ---
 
 # gmcli - Gmail CLI
