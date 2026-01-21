@@ -115,7 +115,7 @@ describe('reply-to headers', function () {
 
 describe('multipart messages', function () {
     beforeEach(function () {
-        $this->tempFile = sys_get_temp_dir() . '/gmcli-test-attachment-' . uniqid() . '.txt';
+        $this->tempFile = sys_get_temp_dir().'/gmcli-test-attachment-'.uniqid().'.txt';
         file_put_contents($this->tempFile, 'Test attachment content');
     });
 
@@ -149,7 +149,7 @@ describe('multipart messages', function () {
             ->subject('Test')
             ->body('Test');
 
-        expect(fn() => $builder->attach('/nonexistent/file.txt'))
+        expect(fn () => $builder->attach('/nonexistent/file.txt'))
             ->toThrow(RuntimeException::class, 'not found');
     });
 });

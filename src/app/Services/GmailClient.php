@@ -15,13 +15,19 @@ use RuntimeException;
 class GmailClient
 {
     private const API_BASE = 'https://gmail.googleapis.com/gmail/v1';
+
     private const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
     private string $clientId;
+
     private string $clientSecret;
+
     private string $refreshToken;
+
     private ?string $accessToken = null;
+
     private int $tokenExpiry = 0;
+
     private ?GmailLogger $logger = null;
 
     public function __construct(
@@ -70,9 +76,9 @@ class GmailClient
     {
         $this->ensureAccessToken();
 
-        $url = self::API_BASE . $endpoint;
+        $url = self::API_BASE.$endpoint;
         if (! empty($params)) {
-            $url .= '?' . http_build_query($params);
+            $url .= '?'.http_build_query($params);
         }
 
         $this->log('debug', "{$method} {$url}");
@@ -150,7 +156,7 @@ class GmailClient
         $ch = curl_init($url);
 
         $headers = [
-            'Authorization: Bearer ' . $this->accessToken,
+            'Authorization: Bearer '.$this->accessToken,
             'Accept: application/json',
         ];
 
@@ -199,7 +205,7 @@ class GmailClient
         }
 
         if (isset($body['error'])) {
-            return "Gmail API error: " . (is_string($body['error']) ? $body['error'] : json_encode($body['error']));
+            return 'Gmail API error: '.(is_string($body['error']) ? $body['error'] : json_encode($body['error']));
         }
 
         return "Gmail API error: HTTP {$response['status']}";

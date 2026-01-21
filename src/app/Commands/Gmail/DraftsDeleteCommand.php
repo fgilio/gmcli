@@ -13,6 +13,7 @@ class DraftsDeleteCommand extends BaseGmailCommand
         {--draft-id= : Draft ID to delete}';
 
     protected $description = 'Delete a draft';
+
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);

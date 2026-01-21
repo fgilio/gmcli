@@ -30,7 +30,9 @@ class GmcliEnv
     ];
 
     private GmcliPaths $paths;
+
     private array $values = [];
+
     private bool $loaded = false;
 
     public function __construct(GmcliPaths $paths)
@@ -159,7 +161,7 @@ class GmcliEnv
 
         $content = $this->serialize();
         $path = $this->paths->envFile();
-        $tempPath = $path . '.tmp.' . getmypid();
+        $tempPath = $path.'.tmp.'.getmypid();
 
         // Write to temp file first
         if (file_put_contents($tempPath, $content) === false) {
@@ -239,7 +241,7 @@ class GmcliEnv
         $octal = decoct($perms);
 
         return "Warning: {$this->paths->envFile()} has insecure permissions (0{$octal}). "
-            . "Expected 0600. Run: chmod 600 {$this->paths->envFile()}";
+            ."Expected 0600. Run: chmod 600 {$this->paths->envFile()}";
     }
 
     private function ensureLoaded(): void
@@ -328,14 +330,14 @@ class GmcliEnv
             }
         }
 
-        return implode("\n", $lines) . "\n";
+        return implode("\n", $lines)."\n";
     }
 
     private function formatLine(string $key, string $value): string
     {
         // Quote value if it contains special characters
         if (preg_match('/[\s#\'"]/', $value)) {
-            $value = '"' . addcslashes($value, '"\\') . '"';
+            $value = '"'.addcslashes($value, '"\\').'"';
         }
 
         return "{$key}={$value}";

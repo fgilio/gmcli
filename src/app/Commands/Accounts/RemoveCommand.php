@@ -15,7 +15,6 @@ class RemoveCommand extends Command
 
     protected $description = 'Remove a Gmail account';
 
-
     public function handle(GmcliEnv $env, Analytics $analytics): int
     {
         $startTime = microtime(true);

@@ -21,6 +21,7 @@ class SendCommand extends BaseGmailCommand
         {--attach=* : File attachments}';
 
     protected $description = 'Send an email directly';
+
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
@@ -101,7 +102,7 @@ class SendCommand extends BaseGmailCommand
                 ]);
             }
 
-            $this->info("Message sent successfully.");
+            $this->info('Message sent successfully.');
             $this->line("Message-ID: {$messageId}");
             $this->line("Thread-ID: {$threadId}");
 

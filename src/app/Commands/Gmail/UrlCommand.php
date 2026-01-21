@@ -15,6 +15,7 @@ class UrlCommand extends BaseGmailCommand
         {--thread-ids=* : Thread IDs}';
 
     protected $description = 'Generate Gmail web URLs for threads';
+
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);

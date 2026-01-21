@@ -13,6 +13,7 @@ class DraftsSendCommand extends BaseGmailCommand
         {--draft-id= : Draft ID to send}';
 
     protected $description = 'Send a draft';
+
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
@@ -58,7 +59,7 @@ class DraftsSendCommand extends BaseGmailCommand
                 ]);
             }
 
-            $this->info("Draft sent successfully.");
+            $this->info('Draft sent successfully.');
             $this->line("Message-ID: {$messageId}");
             $this->line("Thread-ID: {$threadId}");
 

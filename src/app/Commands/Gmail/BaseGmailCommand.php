@@ -20,8 +20,11 @@ use Symfony\Component\Console\Input\InputOption;
 abstract class BaseGmailCommand extends Command
 {
     protected GmcliEnv $env;
+
     protected GmailClient $gmail;
+
     protected GmailLogger $logger;
+
     protected string $account;
 
     protected function configure(): void
@@ -136,7 +139,7 @@ abstract class BaseGmailCommand extends Command
      */
     protected function jsonError(string $message): int
     {
-        fwrite(STDERR, json_encode(['error' => $message]) . "\n");
+        fwrite(STDERR, json_encode(['error' => $message])."\n");
 
         return self::FAILURE;
     }

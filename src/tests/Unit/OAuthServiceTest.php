@@ -18,7 +18,7 @@ describe('code extraction from HTTP request', function () {
 
         $request = "GET /?foo=bar HTTP/1.1\r\nHost: 127.0.0.1:12345\r\n\r\n";
 
-        expect(fn() => $oauth->extractCodeFromHttpRequest($request))
+        expect(fn () => $oauth->extractCodeFromHttpRequest($request))
             ->toThrow(RuntimeException::class, 'No authorization code');
     });
 
@@ -27,14 +27,14 @@ describe('code extraction from HTTP request', function () {
 
         $request = "GET /?error=access_denied&error_description=User%20denied%20access HTTP/1.1\r\n\r\n";
 
-        expect(fn() => $oauth->extractCodeFromHttpRequest($request))
+        expect(fn () => $oauth->extractCodeFromHttpRequest($request))
             ->toThrow(RuntimeException::class, 'User denied access');
     });
 
     it('throws on invalid HTTP format', function () {
         $oauth = new OAuthService('client_id', 'client_secret');
 
-        expect(fn() => $oauth->extractCodeFromHttpRequest('invalid data'))
+        expect(fn () => $oauth->extractCodeFromHttpRequest('invalid data'))
             ->toThrow(RuntimeException::class, 'Invalid HTTP request');
     });
 });
@@ -65,14 +65,14 @@ describe('code extraction from URL', function () {
 
         $url = 'http://localhost:1/?error=access_denied&error_description=Permission+denied';
 
-        expect(fn() => $oauth->extractCodeFromUrl($url))
+        expect(fn () => $oauth->extractCodeFromUrl($url))
             ->toThrow(RuntimeException::class, 'Permission denied');
     });
 
     it('throws on missing query string', function () {
         $oauth = new OAuthService('client_id', 'client_secret');
 
-        expect(fn() => $oauth->extractCodeFromUrl('http://localhost:1/'))
+        expect(fn () => $oauth->extractCodeFromUrl('http://localhost:1/'))
             ->toThrow(RuntimeException::class, 'No query parameters');
     });
 });
@@ -85,8 +85,8 @@ describe('auth URL building', function () {
 
         expect($url)->toContain('accounts.google.com/o/oauth2');
         expect($url)->toContain('client_id=my_client_id');
-        expect($url)->toContain('redirect_uri=' . urlencode('http://127.0.0.1:8080'));
-        expect($url)->toContain('scope=' . urlencode('https://www.googleapis.com/auth/gmail.modify'));
+        expect($url)->toContain('redirect_uri='.urlencode('http://127.0.0.1:8080'));
+        expect($url)->toContain('scope='.urlencode('https://www.googleapis.com/auth/gmail.modify'));
         expect($url)->toContain('access_type=offline');
         expect($url)->toContain('prompt=consent');
     });
@@ -94,7 +94,7 @@ describe('auth URL building', function () {
 
 describe('accounts remove semantics', function () {
     beforeEach(function () {
-        $this->tempDir = sys_get_temp_dir() . '/gmcli-test-' . uniqid();
+        $this->tempDir = sys_get_temp_dir().'/gmcli-test-'.uniqid();
         mkdir($this->tempDir, 0700, true);
     });
 

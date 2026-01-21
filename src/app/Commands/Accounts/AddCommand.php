@@ -23,7 +23,6 @@ class AddCommand extends Command
 
     protected $description = 'Add a Gmail account via OAuth';
 
-
     public function handle(GmcliEnv $env, Analytics $analytics): int
     {
         $startTime = microtime(true);
@@ -51,7 +50,7 @@ class AddCommand extends Command
         if ($env->hasAccount()) {
             $existingEmail = $env->getEmail();
             $this->error("Account already configured: {$existingEmail}");
-            $this->line('Remove it first: gmcli accounts remove ' . $existingEmail);
+            $this->line('Remove it first: gmcli accounts remove '.$existingEmail);
 
             $analytics->track('accounts:add', self::FAILURE, ['success' => false], $startTime);
 
@@ -101,7 +100,7 @@ class AddCommand extends Command
 
             // Open browser (cross-platform)
             $command = PHP_OS_FAMILY === 'Darwin' ? 'open' : 'xdg-open';
-            exec("{$command} " . escapeshellarg($url) . ' 2>/dev/null &');
+            exec("{$command} ".escapeshellarg($url).' 2>/dev/null &');
         });
     }
 

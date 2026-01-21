@@ -14,7 +14,9 @@ use Illuminate\Console\OutputStyle;
 class GmailLogger
 {
     private OutputStyle $output;
+
     private bool $verbose;
+
     private bool $debug;
 
     public function __construct(OutputStyle $output, bool $verbose = false, bool $debug = false)

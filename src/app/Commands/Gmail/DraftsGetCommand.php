@@ -15,6 +15,7 @@ class DraftsGetCommand extends BaseGmailCommand
         {--download : Download attachments}';
 
     protected $description = 'View draft with attachments';
+
     private MimeHelper $mime;
 
     public function handle(Analytics $analytics): int
@@ -74,7 +75,7 @@ class DraftsGetCommand extends BaseGmailCommand
                     'cc' => $cc,
                     'subject' => $subject,
                     'body' => $body,
-                    'attachments' => array_map(fn($a) => [
+                    'attachments' => array_map(fn ($a) => [
                         'filename' => $a['filename'],
                         'mimeType' => $a['mimeType'],
                         'size' => $a['size'],
@@ -84,7 +85,7 @@ class DraftsGetCommand extends BaseGmailCommand
 
             // Text output
             $this->line("Draft-ID: {$draftId}");
-            $this->line("Message-ID: " . ($message['id'] ?? ''));
+            $this->line('Message-ID: '.($message['id'] ?? ''));
             $this->line("To: {$to}");
             if ($cc) {
                 $this->line("Cc: {$cc}");
@@ -100,7 +101,7 @@ class DraftsGetCommand extends BaseGmailCommand
 
             if (! empty($attachments)) {
                 $this->newLine();
-                $this->line("Attachments:");
+                $this->line('Attachments:');
 
                 foreach ($attachments as $att) {
                     $size = $this->formatSize($att['size']);
@@ -132,7 +133,7 @@ class DraftsGetCommand extends BaseGmailCommand
 
         $data = $response['data'] ?? '';
         if (empty($data)) {
-            $this->warn("    Failed to download: empty data");
+            $this->warn('    Failed to download: empty data');
 
             return;
         }
@@ -140,7 +141,7 @@ class DraftsGetCommand extends BaseGmailCommand
         $content = $this->mime->decodeBase64Url($data);
 
         $filename = $this->buildSafeFilename($messageId, $attachment);
-        $path = $this->getAttachmentsPath() . '/' . $filename;
+        $path = $this->getAttachmentsPath().'/'.$filename;
 
         file_put_contents($path, $content);
         $this->info("    Saved: {$path}");
@@ -176,9 +177,9 @@ class DraftsGetCommand extends BaseGmailCommand
             return "{$bytes} B";
         }
         if ($bytes < 1024 * 1024) {
-            return round($bytes / 1024, 1) . ' KB';
+            return round($bytes / 1024, 1).' KB';
         }
 
-        return round($bytes / (1024 * 1024), 1) . ' MB';
+        return round($bytes / (1024 * 1024), 1).' MB';
     }
 }

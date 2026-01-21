@@ -18,8 +18,11 @@ class SearchCommand extends BaseGmailCommand
         {--page= : Page token for pagination}';
 
     protected $description = 'Search threads using Gmail query syntax';
+
     private MimeHelper $mime;
+
     private array $labelsMap = [];
+
     private array $results = [];
 
     public function handle(Analytics $analytics): int

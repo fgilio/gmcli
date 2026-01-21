@@ -52,7 +52,7 @@ describe('base64url encoding', function () {
     it('roundtrips correctly', function () {
         $mime = new MimeHelper;
 
-        $original = "Test message with special chars: +/=";
+        $original = 'Test message with special chars: +/=';
         $encoded = $mime->encodeBase64Url($original);
         $decoded = $mime->decodeBase64Url($encoded);
 

@@ -14,14 +14,23 @@ namespace App\Services;
 class MessageBuilder
 {
     private string $from = '';
+
     private array $to = [];
+
     private array $cc = [];
+
     private array $bcc = [];
+
     private string $subject = '';
+
     private string $body = '';
+
     private array $attachments = [];
+
     private ?string $inReplyTo = null;
+
     private ?string $references = null;
+
     private ?string $threadId = null;
 
     public function from(string $email): self
@@ -124,12 +133,12 @@ class MessageBuilder
     {
         $headers = $this->buildHeaders('text/plain; charset=utf-8');
 
-        return $headers . "\r\n" . $this->body;
+        return $headers."\r\n".$this->body;
     }
 
     private function buildMultipartMessage(): string
     {
-        $boundary = 'gmcli_' . bin2hex(random_bytes(16));
+        $boundary = 'gmcli_'.bin2hex(random_bytes(16));
 
         $headers = $this->buildHeaders("multipart/mixed; boundary=\"{$boundary}\"");
 
@@ -137,9 +146,9 @@ class MessageBuilder
 
         // Text body part
         $parts[] = "Content-Type: text/plain; charset=utf-8\r\n"
-            . "Content-Transfer-Encoding: quoted-printable\r\n"
-            . "\r\n"
-            . $this->quotedPrintableEncode($this->body);
+            ."Content-Transfer-Encoding: quoted-printable\r\n"
+            ."\r\n"
+            .$this->quotedPrintableEncode($this->body);
 
         // Attachment parts
         foreach ($this->attachments as $att) {
@@ -147,36 +156,36 @@ class MessageBuilder
             $encoded = chunk_split(base64_encode($content));
 
             $parts[] = "Content-Type: {$att['mimeType']}; name=\"{$att['filename']}\"\r\n"
-                . "Content-Disposition: attachment; filename=\"{$att['filename']}\"\r\n"
-                . "Content-Transfer-Encoding: base64\r\n"
-                . "\r\n"
-                . $encoded;
+                ."Content-Disposition: attachment; filename=\"{$att['filename']}\"\r\n"
+                ."Content-Transfer-Encoding: base64\r\n"
+                ."\r\n"
+                .$encoded;
         }
 
         $body = "--{$boundary}\r\n"
-            . implode("\r\n--{$boundary}\r\n", $parts)
-            . "\r\n--{$boundary}--";
+            .implode("\r\n--{$boundary}\r\n", $parts)
+            ."\r\n--{$boundary}--";
 
-        return $headers . "\r\n" . $body;
+        return $headers."\r\n".$body;
     }
 
     private function buildHeaders(string $contentType): string
     {
         $headers = [];
 
-        $headers[] = "MIME-Version: 1.0";
+        $headers[] = 'MIME-Version: 1.0';
         $headers[] = "From: {$this->from}";
-        $headers[] = "To: " . implode(', ', $this->to);
+        $headers[] = 'To: '.implode(', ', $this->to);
 
         if (! empty($this->cc)) {
-            $headers[] = "Cc: " . implode(', ', $this->cc);
+            $headers[] = 'Cc: '.implode(', ', $this->cc);
         }
 
         if (! empty($this->bcc)) {
-            $headers[] = "Bcc: " . implode(', ', $this->bcc);
+            $headers[] = 'Bcc: '.implode(', ', $this->bcc);
         }
 
-        $headers[] = "Subject: " . $this->encodeSubject($this->subject);
+        $headers[] = 'Subject: '.$this->encodeSubject($this->subject);
         $headers[] = "Content-Type: {$contentType}";
 
         if ($this->inReplyTo) {
@@ -187,14 +196,14 @@ class MessageBuilder
             $headers[] = "References: {$this->references}";
         }
 
-        return implode("\r\n", $headers) . "\r\n";
+        return implode("\r\n", $headers)."\r\n";
     }
 
     private function encodeSubject(string $subject): string
     {
         // Only encode if contains non-ASCII
         if (preg_match('/[^\x20-\x7E]/', $subject)) {
-            return '=?UTF-8?B?' . base64_encode($subject) . '?=';
+            return '=?UTF-8?B?'.base64_encode($subject).'?=';
         }
 
         return $subject;

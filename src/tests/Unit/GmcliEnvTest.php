@@ -4,7 +4,7 @@ use App\Services\GmcliEnv;
 use App\Services\GmcliPaths;
 
 beforeEach(function () {
-    $this->tempDir = sys_get_temp_dir() . '/gmcli-test-' . uniqid();
+    $this->tempDir = sys_get_temp_dir().'/gmcli-test-'.uniqid();
     mkdir($this->tempDir, 0700, true);
     $this->paths = new GmcliPaths($this->tempDir);
     $this->env = new GmcliEnv($this->paths);

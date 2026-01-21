@@ -26,12 +26,12 @@ class GmcliPaths
 
     public function envFile(): string
     {
-        return $this->basePath . '/.env';
+        return $this->basePath.'/.env';
     }
 
     public function attachmentsDir(): string
     {
-        return $this->basePath . '/attachments';
+        return $this->basePath.'/attachments';
     }
 
     /**
@@ -47,7 +47,7 @@ class GmcliPaths
             return null;
         }
 
-        $envPath = $binaryDir . '/.env';
+        $envPath = $binaryDir.'/.env';
 
         return file_exists($envPath) ? $envPath : null;
     }
@@ -153,7 +153,7 @@ class GmcliPaths
             throw new RuntimeException('Unable to determine home directory');
         }
 
-        return $home . '/.gmcli';
+        return $home.'/.gmcli';
     }
 
     private function ensurePermissions(string $path, int $mode): void

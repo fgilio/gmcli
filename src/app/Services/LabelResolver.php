@@ -10,6 +10,7 @@ namespace App\Services;
 class LabelResolver
 {
     private array $labelsMap = [];
+
     private array $idToName = [];
 
     /**

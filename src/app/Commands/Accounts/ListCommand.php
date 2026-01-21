@@ -16,7 +16,6 @@ class ListCommand extends Command
 
     protected $description = 'List configured Gmail accounts';
 
-
     protected function configure(): void
     {
         parent::configure();
@@ -72,7 +71,7 @@ class ListCommand extends Command
         $this->line($email);
 
         if (! empty($aliases)) {
-            $this->line('  Aliases: ' . implode(', ', $aliases));
+            $this->line('  Aliases: '.implode(', ', $aliases));
         }
 
         // Check for permission warnings

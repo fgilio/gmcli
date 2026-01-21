@@ -3,7 +3,7 @@
 use App\Services\GmcliPaths;
 
 beforeEach(function () {
-    $this->tempDir = sys_get_temp_dir() . '/gmcli-test-' . uniqid();
+    $this->tempDir = sys_get_temp_dir().'/gmcli-test-'.uniqid();
 });
 
 afterEach(function () {
@@ -24,8 +24,8 @@ it('returns correct paths', function () {
     $paths = new GmcliPaths($this->tempDir);
 
     expect($paths->basePath())->toBe($this->tempDir);
-    expect($paths->envFile())->toBe($this->tempDir . '/.env');
-    expect($paths->attachmentsDir())->toBe($this->tempDir . '/attachments');
+    expect($paths->envFile())->toBe($this->tempDir.'/.env');
+    expect($paths->attachmentsDir())->toBe($this->tempDir.'/attachments');
 });
 
 it('creates base directory with secure permissions', function () {

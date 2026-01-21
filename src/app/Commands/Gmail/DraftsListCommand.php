@@ -12,6 +12,7 @@ class DraftsListCommand extends BaseGmailCommand
     protected $signature = 'gmail:drafts:list ';
 
     protected $description = 'List all drafts';
+
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
@@ -42,7 +43,7 @@ class DraftsListCommand extends BaseGmailCommand
                 return self::SUCCESS;
             }
 
-            $results = array_map(fn($d) => [
+            $results = array_map(fn ($d) => [
                 'draftId' => $d['id'],
                 'messageId' => $d['message']['id'] ?? '',
             ], $drafts);

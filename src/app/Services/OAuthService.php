@@ -14,11 +14,15 @@ use RuntimeException;
 class OAuthService
 {
     private const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
+
     private const TOKEN_URL = 'https://oauth2.googleapis.com/token';
+
     private const SCOPE = 'https://www.googleapis.com/auth/gmail.modify';
 
     private string $clientId;
+
     private string $clientSecret;
+
     private int $timeout;
 
     public function __construct(string $clientId, string $clientSecret, int $timeout = 120)
@@ -32,6 +36,7 @@ class OAuthService
      * Runs OAuth flow with automatic callback server.
      *
      * @return array{access_token: string, refresh_token: string, expires_in: int}
+     *
      * @throws RuntimeException on failure
      */
     public function runAutoFlow(callable $onBrowserOpen): array
@@ -53,6 +58,7 @@ class OAuthService
      * Runs OAuth flow with manual URL paste.
      *
      * @return array{access_token: string, refresh_token: string, expires_in: int}
+     *
      * @throws RuntimeException on failure
      */
     public function runManualFlow(callable $onAuthUrl, callable $onPromptRedirectUrl): array
@@ -82,13 +88,14 @@ class OAuthService
             'prompt' => 'consent',
         ];
 
-        return self::AUTH_URL . '?' . http_build_query($params);
+        return self::AUTH_URL.'?'.http_build_query($params);
     }
 
     /**
      * Exchanges authorization code for tokens.
      *
      * @return array{access_token: string, refresh_token: string, expires_in: int}
+     *
      * @throws RuntimeException on failure
      */
     public function exchangeCode(string $code, string $redirectUri): array
@@ -146,23 +153,24 @@ class OAuthService
      * Starts a TCP server socket on a random port.
      *
      * @return resource
+     *
      * @throws RuntimeException on failure
      */
     private function startCallbackServer()
     {
         $server = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
         if ($server === false) {
-            throw new RuntimeException('Failed to create socket: ' . socket_strerror(socket_last_error()));
+            throw new RuntimeException('Failed to create socket: '.socket_strerror(socket_last_error()));
         }
 
         socket_set_option($server, SOL_SOCKET, SO_REUSEADDR, 1);
 
         if (! socket_bind($server, '127.0.0.1', 0)) {
-            throw new RuntimeException('Failed to bind socket: ' . socket_strerror(socket_last_error($server)));
+            throw new RuntimeException('Failed to bind socket: '.socket_strerror(socket_last_error($server)));
         }
 
         if (! socket_listen($server, 1)) {
-            throw new RuntimeException('Failed to listen on socket: ' . socket_strerror(socket_last_error($server)));
+            throw new RuntimeException('Failed to listen on socket: '.socket_strerror(socket_last_error($server)));
         }
 
         return $server;
@@ -171,7 +179,7 @@ class OAuthService
     /**
      * Gets the port number assigned to a bound socket.
      *
-     * @param resource $server
+     * @param  resource  $server
      */
     private function getServerPort($server): int
     {
@@ -183,7 +191,8 @@ class OAuthService
     /**
      * Waits for OAuth callback and extracts the code.
      *
-     * @param resource $server
+     * @param  resource  $server
+     *
      * @throws RuntimeException on timeout or error
      */
     private function waitForCallback($server): string
@@ -269,11 +278,11 @@ HTML;
         $length = strlen($html);
 
         return "HTTP/1.1 200 OK\r\n"
-            . "Content-Type: text/html\r\n"
-            . "Content-Length: {$length}\r\n"
-            . "Connection: close\r\n"
-            . "\r\n"
-            . $html;
+            ."Content-Type: text/html\r\n"
+            ."Content-Length: {$length}\r\n"
+            ."Connection: close\r\n"
+            ."\r\n"
+            .$html;
     }
 
     /**
@@ -312,7 +321,7 @@ HTML;
         }
 
         if (! is_array($decoded)) {
-            throw new RuntimeException("Invalid JSON response from token endpoint");
+            throw new RuntimeException('Invalid JSON response from token endpoint');
         }
 
         return $decoded;

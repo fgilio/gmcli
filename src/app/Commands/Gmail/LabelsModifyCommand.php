@@ -16,6 +16,7 @@ class LabelsModifyCommand extends BaseGmailCommand
         {--remove=* : Labels to remove}';
 
     protected $description = 'Modify labels on threads';
+
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
@@ -67,10 +68,10 @@ class LabelsModifyCommand extends BaseGmailCommand
 
             // Report any not found labels
             if (! empty($addResolved['notFound'])) {
-                $this->warn('Labels not found (add): ' . implode(', ', $addResolved['notFound']));
+                $this->warn('Labels not found (add): '.implode(', ', $addResolved['notFound']));
             }
             if (! empty($removeResolved['notFound'])) {
-                $this->warn('Labels not found (remove): ' . implode(', ', $removeResolved['notFound']));
+                $this->warn('Labels not found (remove): '.implode(', ', $removeResolved['notFound']));
             }
 
             // Nothing to do if all labels not found

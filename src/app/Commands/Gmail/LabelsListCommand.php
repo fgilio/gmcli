@@ -12,6 +12,7 @@ class LabelsListCommand extends BaseGmailCommand
     protected $signature = 'gmail:labels:list ';
 
     protected $description = 'List all Gmail labels';
+
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
@@ -30,11 +31,11 @@ class LabelsListCommand extends BaseGmailCommand
             $labels = $response['labels'] ?? [];
 
             // Sort by name
-            usort($labels, fn($a, $b) => strcasecmp($a['name'], $b['name']));
+            usort($labels, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
 
             // JSON output
             if ($this->shouldOutputJson()) {
-                $jsonLabels = array_map(fn($l) => [
+                $jsonLabels = array_map(fn ($l) => [
                     'id' => $l['id'],
                     'name' => $l['name'],
                     'type' => $l['type'] ?? 'user',

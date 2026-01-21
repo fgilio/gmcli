@@ -22,6 +22,7 @@ class DraftsCreateCommand extends BaseGmailCommand
         {--open : Open Gmail in browser after creating draft}';
 
     protected $description = 'Create a new draft';
+
     public function handle(Analytics $analytics): int
     {
         $startTime = microtime(true);
@@ -160,7 +161,7 @@ class DraftsCreateCommand extends BaseGmailCommand
         }
 
         $command = PHP_OS_FAMILY === 'Darwin' ? 'open' : 'xdg-open';
-        exec("{$command} " . escapeshellarg($url) . ' 2>/dev/null &');
+        exec("{$command} ".escapeshellarg($url).' 2>/dev/null &');
 
         $this->logger->verbose("Opened: {$url}");
     }
