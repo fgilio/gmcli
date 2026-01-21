@@ -35,7 +35,7 @@ class Analytics
         }
     }
 
-    private function disk(): \Illuminate\Filesystem\FilesystemAdapter
+    private function disk(): \Illuminate\Contracts\Filesystem\Filesystem
     {
         $root = realpath(dirname(\Phar::running(false))) ?: dirname(\Phar::running(false));
 

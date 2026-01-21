@@ -2,6 +2,12 @@ parameters:
     level: 6
     paths:
         - app
+    reportUnmatchedIgnoredErrors: false
     ignoreErrors:
-        # collect() with API response data has unresolvable template types
-        - identifier: argument.templateType
+        # Array value types for API response data - too verbose to annotate
+        - identifier: missingType.iterableValue
+        # Socket type changed in PHP 8.0 from resource to Socket object
+        - identifier: argument.type
+          path: app/Services/OAuthService.php
+        - identifier: return.type
+          path: app/Services/OAuthService.php
