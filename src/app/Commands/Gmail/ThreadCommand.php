@@ -3,6 +3,7 @@
 namespace App\Commands\Gmail;
 
 use App\Services\Analytics;
+use App\Services\GmailIdHelper;
 use App\Services\MimeHelper;
 
 /**
@@ -17,6 +18,7 @@ class ThreadCommand extends BaseGmailCommand
         {--download : Download attachments}';
 
     protected $description = 'Get thread with all messages';
+
     private MimeHelper $mime;
 
     public function handle(Analytics $analytics): int
@@ -40,12 +42,18 @@ class ThreadCommand extends BaseGmailCommand
             return self::FAILURE;
         }
 
+        // Parse thread ID from URL or FMfcg token
+        $helper = new GmailIdHelper;
+        $parsed = $helper->parse($threadId);
+        $threadId = $parsed['threadId'];
+
         if (! $this->initGmail()) {
             $analytics->track('gmail:thread', self::FAILURE, ['found' => false], $startTime);
 
             return self::FAILURE;
         }
 
+        $this->logger->verbose("Resolved: {$parsed['original']} -> {$threadId} ({$parsed['source']})");
         $this->mime = new MimeHelper;
 
         try {
@@ -115,7 +123,7 @@ class ThreadCommand extends BaseGmailCommand
             'messageIdHeader' => $this->mime->getHeader($payload, 'Message-ID') ?? '',
             'labels' => $message['labelIds'] ?? [],
             'body' => $this->mime->extractTextBody($payload),
-            'attachments' => array_map(fn($a) => [
+            'attachments' => array_map(fn ($a) => [
                 'filename' => $a['filename'],
                 'mimeType' => $a['mimeType'],
                 'size' => $a['size'],
@@ -151,7 +159,7 @@ class ThreadCommand extends BaseGmailCommand
         // Labels
         $labelIds = $message['labelIds'] ?? [];
         if (! empty($labelIds)) {
-            $this->line("Labels: " . implode(', ', $labelIds));
+            $this->line('Labels: '.implode(', ', $labelIds));
         }
 
         $this->newLine();
@@ -168,7 +176,7 @@ class ThreadCommand extends BaseGmailCommand
         $attachments = $this->mime->getAttachments($payload);
         if (! empty($attachments)) {
             $this->newLine();
-            $this->line("Attachments:");
+            $this->line('Attachments:');
 
             foreach ($attachments as $att) {
                 $size = $this->formatSize($att['size']);
@@ -191,7 +199,7 @@ class ThreadCommand extends BaseGmailCommand
 
         $data = $response['data'] ?? '';
         if (empty($data)) {
-            $this->warn("    Failed to download: empty data");
+            $this->warn('    Failed to download: empty data');
 
             return;
         }
@@ -200,7 +208,7 @@ class ThreadCommand extends BaseGmailCommand
 
         // Build safe filename
         $filename = $this->buildSafeFilename($messageId, $attachment);
-        $path = $this->getAttachmentsPath() . '/' . $filename;
+        $path = $this->getAttachmentsPath().'/'.$filename;
 
         file_put_contents($path, $content);
         $this->info("    Saved: {$path}");
@@ -238,9 +246,9 @@ class ThreadCommand extends BaseGmailCommand
             return "{$bytes} B";
         }
         if ($bytes < 1024 * 1024) {
-            return round($bytes / 1024, 1) . ' KB';
+            return round($bytes / 1024, 1).' KB';
         }
 
-        return round($bytes / (1024 * 1024), 1) . ' MB';
+        return round($bytes / (1024 * 1024), 1).' MB';
     }
 }
